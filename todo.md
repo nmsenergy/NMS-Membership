@@ -77,3 +77,6 @@
 - [x] Birthday benefit tests
 - [x] Car allowance tests
 - [x] Admin stats procedure test
+
+## New Features
+- [x] Member profile edit (name, phone number)

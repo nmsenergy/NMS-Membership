@@ -77,6 +77,12 @@ export async function getUserByOpenId(openId: string) {
   return result[0];
 }
 
+export async function updateUser(userId: number, data: Partial<InsertUser>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set(data).where(eq(users.id, userId));
+}
+
 export async function getAllUsers() {
   const db = await getDb();
   if (!db) return [];

@@ -48,6 +48,7 @@ import {
   updateMember,
   updateOrderStatus,
   updateTopupStatus,
+  updateUser,
   updateWithdrawalStatus,
   upsertAnnouncement,
   upsertProduct,
@@ -166,6 +167,7 @@ const memberRouter = router({
   updateProfile: protectedProcedure
     .input(
       z.object({
+        name: z.string().optional(),
         phone: z.string().optional(),
         birthday: z.string().optional(),
         shippingAddress: z.string().optional(),
@@ -174,6 +176,9 @@ const memberRouter = router({
     .mutation(async ({ ctx, input }) => {
       const member = await getMemberByUserId(ctx.user.id);
       if (!member) throw new TRPCError({ code: "NOT_FOUND" });
+      if (input.name) {
+        await updateUser(ctx.user.id, { name: input.name });
+      }
       await updateMember(member.id, input);
       return getMemberById(member.id);
     }),

@@ -9,9 +9,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
-import { LogOut, Copy, Settings, ChevronRight } from "lucide-react";
+import { LogOut, Copy, Settings, ChevronRight, Edit } from "lucide-react";
 
 export default function Profile() {
   const { user, logout } = useAuth();
@@ -21,6 +24,19 @@ export default function Profile() {
   const { data: gubenLedger } = trpc.bonus.gubenLedger.useQuery({});
   const { data: bonusLedger } = trpc.bonus.bonusLedger.useQuery({});
   const { data: yearEnd } = trpc.member.yearEndDividend.useQuery({ year: new Date().getFullYear() });
+  const utils = trpc.useUtils();
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editName, setEditName] = useState(user?.name || "");
+  const [editPhone, setEditPhone] = useState(member?.phone || "");
+  
+  const updateProfile = trpc.member.updateProfile.useMutation({
+    onSuccess: () => {
+      toast.success("个人信息已更新");
+      setShowEditDialog(false);
+      utils.auth.me.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   if (!user || !member) return (
     <div className="mobile-app flex items-center justify-center min-h-screen">
@@ -29,6 +45,9 @@ export default function Profile() {
   );
 
   const copyCode = () => { navigator.clipboard.writeText(member.referralCode); toast.success("推荐码已复制"); };
+  const handleSaveProfile = () => {
+    updateProfile.mutate({ name: editName, phone: editPhone });
+  };
 
   return (
     <div className="mobile-app pb-20">
@@ -47,9 +66,14 @@ export default function Profile() {
               <Copy size={12} />
             </button>
           </div>
-          <button onClick={logout} className="p-2 text-white/80">
-            <LogOut size={20} />
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => { setEditName(user?.name || ""); setEditPhone(member?.phone || ""); setShowEditDialog(true); }} className="p-2 text-white/80">
+              <Edit size={20} />
+            </button>
+            <button onClick={logout} className="p-2 text-white/80">
+              <LogOut size={20} />
+            </button>
+          </div>
         </div>
         <div className="grid grid-cols-3 gap-3 mt-5">
           <div className="bg-white/15 rounded-xl p-3 text-center">
@@ -147,6 +171,29 @@ export default function Profile() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-sm mx-auto">
+          <DialogHeader>
+            <DialogTitle>修改个人信息</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>姓名</Label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="mt-1.5" />
+            </div>
+            <div>
+              <Label>手机号码</Label>
+              <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="mt-1.5" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>取消</Button>
+            <Button onClick={handleSaveProfile} disabled={updateProfile.isPending || !editName.trim()}>保存</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <BottomNav />
     </div>
   );
