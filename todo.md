@@ -80,3 +80,6 @@
 
 ## New Features
 - [x] Member profile edit (name, phone number)
+
+## Recent Changes
+- [x] Make referral code mandatory for registration

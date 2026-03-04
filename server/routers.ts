@@ -119,19 +119,20 @@ const memberRouter = router({
       z.object({
         phone: z.string().optional(),
         birthday: z.string().optional(),
-        referralCode: z.string().optional(),
+        referralCode: z.string(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       const existing = await getMemberByUserId(ctx.user.id);
       if (existing) throw new TRPCError({ code: "BAD_REQUEST", message: "Already registered" });
 
-      let referrerId: number | undefined;
-      if (input.referralCode) {
-        const referrer = await getMemberByReferralCode(input.referralCode);
-        if (!referrer) throw new TRPCError({ code: "NOT_FOUND", message: "Invalid referral code" });
-        referrerId = referrer.id;
+      if (!input.referralCode.trim()) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Referral code is required" });
       }
+
+      const referrer = await getMemberByReferralCode(input.referralCode);
+      if (!referrer) throw new TRPCError({ code: "NOT_FOUND", message: "Invalid referral code" });
+      const referrerId = referrer.id;
 
       const code = generateReferralCode();
       const member = await createMember({
@@ -151,14 +152,12 @@ const memberRouter = router({
       });
 
       // Increment referrer's direct VIP count
-      if (referrerId) {
-        const referrer = await getMemberById(referrerId);
-        if (referrer) {
-          await updateMember(referrerId, {
-            directVipReferrals: referrer.directVipReferrals + 1,
-          });
-          await checkAndUpgradeRank(referrerId);
-        }
+      const referrerData = await getMemberById(referrerId);
+      if (referrerData) {
+        await updateMember(referrerId, {
+          directVipReferrals: referrerData.directVipReferrals + 1,
+        });
+        await checkAndUpgradeRank(referrerId);
       }
 
       return member;

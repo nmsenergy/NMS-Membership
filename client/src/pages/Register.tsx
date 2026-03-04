@@ -29,7 +29,11 @@ export default function Register() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    register.mutate({ phone, birthday: birthday || undefined, referralCode: referralCode || undefined });
+    if (!referralCode.trim()) {
+      toast.error("请输入推荐人码");
+      return;
+    }
+    register.mutate({ phone, birthday: birthday || undefined, referralCode });
   };
 
   if (!user) {
@@ -62,10 +66,10 @@ export default function Register() {
               <Input id="birthday" type="date" value={birthday} onChange={(e) => setBirthday(e.target.value)} className="mt-1.5" />
             </div>
             <div>
-              <Label htmlFor="referralCode" className="text-sm font-medium">推荐人码 <span className="text-muted-foreground font-normal">(选填)</span></Label>
+              <Label htmlFor="referralCode" className="text-sm font-medium">推荐人码 <span className="text-red-500">*必填</span></Label>
               <Input id="referralCode" placeholder="请输入推荐人的推荐码" value={referralCode} onChange={(e) => setReferralCode(e.target.value.toUpperCase())} className="mt-1.5" />
             </div>
-            <Button type="submit" className="w-full mt-6" disabled={register.isPending}>
+            <Button type="submit" className="w-full mt-6" disabled={register.isPending || !referralCode.trim()}>
               {register.isPending ? "注册中..." : "立即注册"}
             </Button>
           </form>
