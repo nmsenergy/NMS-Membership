@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { formatRM, RANK_LABELS, isAgentOrAbove, isSMOrAbove } from "@/lib/utils";
@@ -17,6 +18,22 @@ export default function Home() {
   const { data: authData } = trpc.auth.me.useQuery();
   const member = (authData as any)?.member;
   const { data: announcements } = trpc.announcement.list.useQuery();
+
+  // Auto-redirect admin to admin dashboard
+  useEffect(() => {
+    if (user && (user as any)?.role === "admin") {
+      navigate("/admin");
+    }
+  }, [user, navigate]);
+
+  // If user is admin, show loading while redirecting
+  if (user && (user as any)?.role === "admin") {
+    return (
+      <div className="mobile-app flex items-center justify-center min-h-screen">
+        <p className="text-muted-foreground">正在进入管理后台...</p>
+      </div>
+    );
+  }
 
   if (authLoading) {
     return (

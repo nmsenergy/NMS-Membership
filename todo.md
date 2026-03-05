@@ -83,3 +83,6 @@
 
 ## Recent Changes
 - [x] Make referral code mandatory for registration
+
+## In Progress
+- [x] Admin auto-redirect to admin dashboard after login
