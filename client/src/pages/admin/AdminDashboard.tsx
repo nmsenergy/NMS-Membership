@@ -40,7 +40,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="mobile-app pb-8">
-      <div className="gradient-header px-5 pt-12 pb-8 text-white">
+      <div className="gradient-header px-5 pt-12 pb-8 text-white" style={{backgroundColor: '#e7081f'}}>
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-white/70">管理员后台</p>

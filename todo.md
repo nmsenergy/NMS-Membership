@@ -86,3 +86,8 @@
 
 ## In Progress
 - [x] Admin auto-redirect to admin dashboard after login
+
+## Bulk Import Feature
+- [x] Excel template generation and download
+- [x] Bulk import API with validation
+- [x] Admin import page UI
