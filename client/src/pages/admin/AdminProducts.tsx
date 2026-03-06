@@ -20,7 +20,7 @@ export default function AdminProducts() {
   const [form, setForm] = useState({ name: "", description: "", category: "VIP_PACKAGE", price: "", baseValue: "", agentPrice: "", imageUrl: "", isActive: true });
   const utils = trpc.useUtils();
 
-  const { data: products } = trpc.product.list.useQuery({ zone: "ALL" as any });
+  const { data: products } = trpc.product.list.useQuery({ zone: "BOTH" });
 
   const createProduct = trpc.admin.createProduct.useMutation({
     onSuccess: () => { toast.success("产品已创建"); setShowCreate(false); resetForm(); utils.product.list.invalidate(); },

@@ -91,3 +91,6 @@
 - [x] Excel template generation and download
 - [x] Bulk import API with validation
 - [x] Admin import page UI
+
+## Bug Fixes
+- [x] Fix zone field validation error in AdminProducts page
