@@ -274,3 +274,54 @@ export const rewardVisibility = mysqlTable("reward_visibility", {
   showTravelReward: boolean("showTravelReward").default(true).notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
+
+
+// Product Calculation Base - stores different calculation bases for same product
+export const productCalculationBase = mysqlTable("product_calculation_base", {
+  id: int("id").autoincrement().primaryKey(),
+  productId: int("productId").notNull(),
+  zone: mysqlEnum("zone", ["VIP", "AGENT", "BOTH"]).notNull(),
+  gubenBase: decimal("gubenBase", { precision: 12, scale: 2 }).notNull(),
+  bonusBase: decimal("bonusBase", { precision: 12, scale: 2 }).notNull(),
+  gubenRate: decimal("gubenRate", { precision: 5, scale: 2 }).default("15.00").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ProductCalculationBase = typeof productCalculationBase.$inferSelect;
+export type InsertProductCalculationBase = typeof productCalculationBase.$inferInsert;
+
+// Upgrade Conditions - configurable criteria for member rank upgrades
+export const upgradeConditions = mysqlTable("upgrade_conditions", {
+  id: int("id").autoincrement().primaryKey(),
+  rank: mysqlEnum("rank", ["VIP", "M_AGENT", "SM", "GM", "CEO"]).notNull().unique(),
+  requiredDirectVips: int("requiredDirectVips").default(0).notNull(),
+  requiredDirectMAgents: int("requiredDirectMAgents").default(0).notNull(),
+  requiredVipPackages: int("requiredVipPackages").default(0).notNull(),
+  requiredTeamSales: decimal("requiredTeamSales", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  carAllowanceMonthlyTeamSales: decimal("carAllowanceMonthlyTeamSales", { precision: 12, scale: 2 }).default("18000.00").notNull(),
+  carAllowanceSubMemberCap: decimal("carAllowanceSubMemberCap", { precision: 12, scale: 2 }).default("6000.00").notNull(),
+  carAllowancePerQualifiedMember: decimal("carAllowancePerQualifiedMember", { precision: 12, scale: 2 }).default("200.00").notNull(),
+  travelRewardVipCount: int("travelRewardVipCount").default(12).notNull(),
+  travelRewardAssessmentAmount: decimal("travelRewardAssessmentAmount", { precision: 12, scale: 2 }).default("2800.00").notNull(),
+  dividendMinAnnualIncome: decimal("dividendMinAnnualIncome", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  dividendRate: decimal("dividendRate", { precision: 5, scale: 2 }).default("0.00").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type UpgradeCondition = typeof upgradeConditions.$inferSelect;
+export type InsertUpgradeCondition = typeof upgradeConditions.$inferInsert;
+
+// Manual Bonus Allocation - for admin to manually allocate guben or bonus
+export const manualBonusAllocations = mysqlTable("manual_bonus_allocations", {
+  id: int("id").autoincrement().primaryKey(),
+  memberId: int("memberId").notNull(),
+  type: mysqlEnum("type", ["GUBEN", "BONUS"]).notNull(),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  reason: text("reason").notNull(),
+  allocatedBy: int("allocatedBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ManualBonusAllocation = typeof manualBonusAllocations.$inferSelect;
+export type InsertManualBonusAllocation = typeof manualBonusAllocations.$inferInsert;

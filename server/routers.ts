@@ -53,7 +53,15 @@ import {
   upsertAnnouncement,
   upsertProduct,
   upsertUser,
+  getDb,
 } from "./db";
+import {
+  upgradeConditions,
+  manualBonusAllocations,
+  bonusLedger,
+  productCalculationBase,
+} from "../drizzle/schema";
+import { eq, gte, lte, and } from "drizzle-orm";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -1251,6 +1259,82 @@ const adminRouter = router({
         }
       }
       return { valid: errors.length === 0, errors, totalRows: input.data.length };
+    }),
+
+  exportMemberDetails: adminProcedure.mutation(async () => {
+    const allMembers = await getAllMembers();
+    const data = allMembers.map(({ member, user }) => ({
+      referralCode: member.referralCode,
+      rank: member.rank,
+      phone: member.phone || "",
+      gubenBalance: member.gubenBalance,
+      bonusBalance: member.bonusBalance,
+      directVipReferrals: member.directVipReferrals,
+      createdAt: member.createdAt,
+    }));
+    const XLSX = await import("xlsx");
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Members");
+    const buf = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+    return { base64: buf, filename: "members.xlsx" };
+  }),
+
+  getUpgradeConditions: adminProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return [];
+    return db.select().from(upgradeConditions);
+  }),
+
+  updateUpgradeCondition: adminProcedure
+    .input(z.object({
+      rank: z.enum(["VIP", "M_AGENT", "SM", "GM", "CEO"]),
+      requiredDirectVips: z.number().optional(),
+      requiredVipPackages: z.number().optional(),
+      dividendRate: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const updateData: any = {};
+      if (input.requiredDirectVips !== undefined) updateData.requiredDirectVips = input.requiredDirectVips;
+      if (input.requiredVipPackages !== undefined) updateData.requiredVipPackages = input.requiredVipPackages;
+      if (input.dividendRate !== undefined) updateData.dividendRate = input.dividendRate.toString();
+      await db.update(upgradeConditions).set(updateData)
+        .where(eq(upgradeConditions.rank, input.rank));
+      return { success: true };
+    }),
+
+  allocateBonus: adminProcedure
+    .input(z.object({
+      memberId: z.number(),
+      type: z.enum(["GUBEN", "BONUS"]),
+      amount: z.number(),
+      reason: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      await db.insert(manualBonusAllocations).values({
+        memberId: input.memberId,
+        type: input.type,
+        amount: input.amount.toString(),
+        reason: input.reason,
+        allocatedBy: ctx.user.id,
+      });
+      const member = await getMemberById(input.memberId);
+      if (member) {
+        if (input.type === "GUBEN") {
+          await updateMember(input.memberId, {
+            gubenBalance: member.gubenBalance + input.amount,
+          });
+        } else {
+          await updateMember(input.memberId, {
+            bonusBalance: (parseFloat(member.bonusBalance) + input.amount).toString(),
+          });
+        }
+      }
+      return { success: true };
     }),
 
 });

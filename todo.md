@@ -94,3 +94,18 @@
 
 ## Bug Fixes
 - [x] Fix zone field validation error in AdminProducts page
+
+
+## Admin Backend Features (New Requirements)
+- [x] Member detail export with referrer info (Excel)
+- [ ] Bonus/固本 report by date with export (Excel)
+- [ ] Order/fixed本 exchange report by date with export (Excel)
+- [ ] Product calculation base settings (different zones, prices, guben/bonus rates)
+- [x] Birthday verification and half-price product eligibility
+- [x] Upgrade condition settings (configurable criteria)
+- [x] Member data modification interface
+- [ ] Top-up/Withdrawal export (Excel)
+- [x] Manual 固本/bonus allocation
+- [x] System announcements management
+- [x] Manual order status handling
+- [ ] Role-based admin permissions (Full Admin vs Regional Inventory Manager)
