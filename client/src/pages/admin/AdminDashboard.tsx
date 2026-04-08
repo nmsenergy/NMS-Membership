@@ -4,7 +4,7 @@ import { formatRM } from "@/lib/utils";
 import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, ShoppingBag, TrendingUp, Settings, Package, Bell, Wallet, ChevronRight, LogOut } from "lucide-react";
+import { Users, ShoppingBag, TrendingUp, Settings, Package, Bell, Wallet, ChevronRight, LogOut, Zap } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AdminDashboard() {
@@ -31,6 +31,7 @@ export default function AdminDashboard() {
     { label: "订单管理", desc: "处理订单、审核付款", path: "/admin/orders", icon: ShoppingBag, color: "bg-green-100 text-green-600" },
     { label: "产品管理", desc: "管理VIP和代理产品", path: "/admin/products", icon: Package, color: "bg-purple-100 text-purple-600" },
     ...(!isRegionalManager ? [
+      { label: "计算准则", desc: "设置产品固本和奖金计算", path: "/admin/calculation-base", icon: Zap, color: "bg-orange-100 text-orange-600" },
       { label: "奖金管理", desc: "手动分配奖金、查看报告", path: "/admin/bonuses", icon: TrendingUp, color: "bg-amber-100 text-amber-600" },
       { label: "充值提现", desc: "审核充值和提现申请", path: "/admin/topups", icon: Wallet, color: "bg-cyan-100 text-cyan-600" },
       { label: "系统公告", desc: "发布和管理公告", path: "/admin/announcements", icon: Bell, color: "bg-pink-100 text-pink-600" },

@@ -24,6 +24,8 @@ import AdminBonuses from "./pages/admin/AdminBonuses";
 import AdminAnnouncements from "./pages/admin/AdminAnnouncements";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminTopups from "./pages/admin/AdminTopups";
+import AdminCalculationBase from "./pages/admin/AdminCalculationBase";
+import AdminImport from "./pages/admin/AdminImport";
 
 function Router() {
   return (
@@ -50,6 +52,8 @@ function Router() {
       <Route path="/admin/announcements" component={AdminAnnouncements} />
       <Route path="/admin/settings" component={AdminSettings} />
       <Route path="/admin/topups" component={AdminTopups} />
+      <Route path="/admin/calculation-base" component={AdminCalculationBase} />
+      <Route path="/admin/import" component={AdminImport} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

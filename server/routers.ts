@@ -1337,6 +1337,84 @@ const adminRouter = router({
       return { success: true };
     }),
 
+  orderReport: adminProcedure
+    .input(z.object({ startDate: z.string(), endDate: z.string() }))
+    .query(async ({ input }) => {
+      const allOrders = await getAllOrders({});
+      const filtered = allOrders.filter(o => {
+        const oDate = new Date(o.createdAt);
+        return oDate >= new Date(input.startDate) && oDate <= new Date(input.endDate);
+      });
+      return filtered;
+    }),
+
+  exportOrderReport: adminProcedure
+    .input(z.object({ startDate: z.string(), endDate: z.string() }))
+    .mutation(async ({ input }) => {
+      const XLSX = await import("xlsx");
+      const allOrders = await getAllOrders({});
+      const filtered = allOrders.filter(o => {
+        const oDate = new Date(o.createdAt);
+        return oDate >= new Date(input.startDate) && oDate <= new Date(input.endDate);
+      });
+      const rows = filtered.map(o => ({
+        订单号: o.orderNo,
+        类型: o.orderType,
+        状态: o.status,
+        总金额: o.totalAmount,
+        创建时间: o.createdAt.toISOString(),
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Orders");
+      return { base64: XLSX.write(wb, { type: "base64", bookType: "xlsx" }) };
+    }),
+
+  getCalculationBases: adminProcedure
+    .input(z.object({ productId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(productCalculationBase)
+        .where(eq(productCalculationBase.productId, input.productId));
+    }),
+
+  setCalculationBase: adminProcedure
+    .input(z.object({
+      productId: z.number(),
+      zone: z.enum(["VIP", "AGENT", "BOTH"]),
+      gubenBase: z.number(),
+      bonusBase: z.number(),
+      gubenRate: z.number(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const existing = await db.select().from(productCalculationBase)
+        .where(and(
+          eq(productCalculationBase.productId, input.productId),
+          eq(productCalculationBase.zone, input.zone)
+        ));
+      if (existing.length > 0) {
+        await db.update(productCalculationBase)
+          .set({
+            gubenBase: input.gubenBase.toString(),
+            bonusBase: input.bonusBase.toString(),
+            gubenRate: input.gubenRate.toString(),
+          })
+          .where(eq(productCalculationBase.id, existing[0].id));
+      } else {
+        await db.insert(productCalculationBase).values({
+          productId: input.productId,
+          zone: input.zone,
+          gubenBase: input.gubenBase.toString(),
+          bonusBase: input.bonusBase.toString(),
+          gubenRate: input.gubenRate.toString(),
+        });
+      }
+      return { success: true };
+    }),
+
 });
 
 // ─── Bonus Distribution Logic ─────────────────────────────────────────────────

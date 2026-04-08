@@ -109,3 +109,12 @@
 - [x] System announcements management
 - [x] Manual order status handling
 - [ ] Role-based admin permissions (Full Admin vs Regional Inventory Manager)
+
+
+## Remaining Admin Features (Completed)
+- [x] Bonus/固本 reporting page with date filters and Excel export (已有)
+- [x] Order/redemption reporting page with date filters and Excel export (已添加)
+- [x] Product calculation base configuration API (已添加)
+- [x] Product calculation base configuration UI (已添加)
+- [ ] Regional manager role implementation
+- [ ] Top-up/Withdrawal export functionality
