@@ -16,6 +16,12 @@ const STATUS_COLORS: Record<string, string> = {
   CANCELLED: "bg-gray-100 text-gray-600",
 };
 
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  ONLINE_TRANSFER: "在线转账",
+  OFFLINE_PAYMENT: "线下付款",
+  VIP_CODE: "VIP付款码",
+};
+
 export default function Orders() {
   const { data: orders, isLoading } = trpc.order.myOrders.useQuery();
   const { data: codes } = trpc.order.myCodes.useQuery();
@@ -50,9 +56,10 @@ export default function Orders() {
                     <Package size={40} className="mx-auto text-muted-foreground/40 mb-3" />
                     <p className="text-muted-foreground text-sm">暂无订单</p>
                   </div>
-                ) : filtered.map((order) => (
+                ) : filtered.map((order: any) => (
                   <Card key={order.id} className="p-4 rounded-xl border-0">
-                    <div className="flex items-start justify-between mb-2">
+                    {/* Header: Order Type, Order No, Status */}
+                    <div className="flex items-start justify-between mb-3">
                       <div>
                         <p className="text-xs text-muted-foreground">{ORDER_TYPE_LABELS[order.orderType]}</p>
                         <p className="text-sm font-mono text-muted-foreground">{order.orderNo}</p>
@@ -61,15 +68,51 @@ export default function Orders() {
                         {ORDER_STATUS_LABELS[order.status]}
                       </span>
                     </div>
-                    <div className="flex justify-between items-end mt-3">
-                      <p className="text-xs text-muted-foreground">{formatDateTime(order.createdAt)}</p>
-                      <p className="text-base font-bold text-primary">
-                        {order.orderType === "REDEMPTION_ORDER" ? `${order.gubenUsed} 固本` : formatRM(order.totalAmount)}
-                      </p>
-                    </div>
-                    {order.paymentCode && (
-                      <p className="text-xs text-muted-foreground mt-1">付款码: {order.paymentCode}</p>
+
+                    {/* Product Details */}
+                    {order.items && order.items.length > 0 && (
+                      <div className="bg-muted/30 rounded-lg p-3 mb-3 space-y-2">
+                        {order.items.map((item: any, idx: number) => (
+                          <div key={idx} className="text-sm">
+                            <p className="font-medium text-foreground">{item.product?.name || "产品"}</p>
+                            <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                              <span>数量: {item.quantity}</span>
+                              <span>{formatRM(item.price)}/件</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     )}
+
+                    {/* Payment Information */}
+                    <div className="space-y-1 mb-3 pb-3 border-b border-border/50">
+                      {order.paymentMethod && (
+                        <p className="text-xs text-muted-foreground">
+                          付款方式: <span className="font-medium text-foreground">{PAYMENT_METHOD_LABELS[order.paymentMethod] || order.paymentMethod}</span>
+                        </p>
+                      )}
+                      {order.paymentCode && (
+                        <p className="text-xs text-muted-foreground">
+                          付款码: <span className="font-mono font-medium text-foreground">{order.paymentCode}</span>
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Date and Amount */}
+                    <div className="flex justify-between items-end">
+                      <div className="flex flex-col">
+                        <p className="text-xs text-muted-foreground">订单时间</p>
+                        <p className="text-xs font-medium">{formatDateTime(order.createdAt)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground">
+                          {order.orderType === "REDEMPTION_ORDER" ? "使用固本" : "订单金额"}
+                        </p>
+                        <p className="text-lg font-bold text-primary">
+                          {order.orderType === "REDEMPTION_ORDER" ? `${order.gubenUsed} 固本` : formatRM(order.totalAmount)}
+                        </p>
+                      </div>
+                    </div>
                   </Card>
                 ))}
               </TabsContent>

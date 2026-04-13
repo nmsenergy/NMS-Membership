@@ -652,9 +652,25 @@ export async function getOrdersWithItems(memberId?: number) {
   const db = await getDb();
   if (!db) return [];
   const condition = memberId ? eq(orders.memberId, memberId) : undefined;
-  return db
+  const result = await db
     .select()
     .from(orders)
     .where(condition)
     .orderBy(desc(orders.createdAt));
+  
+  // Fetch items for each order with product details
+  const ordersWithItems = await Promise.all(
+    result.map(async (order) => {
+      const items = await db.select().from(orderItems).where(eq(orderItems.orderId, order.id));
+      const itemsWithProducts = await Promise.all(
+        items.map(async (item) => {
+          const product = await db.select().from(products).where(eq(products.id, item.productId)).limit(1);
+          return { ...item, product: product[0] || null };
+        })
+      );
+      return { ...order, items: itemsWithProducts };
+    })
+  );
+  
+  return ordersWithItems;
 }

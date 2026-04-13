@@ -122,3 +122,7 @@
 
 ## Bug Fixes (Current)
 - [x] Fix "返回会员首页" button navigation in admin pages
+
+
+## New Features (Current)
+- [x] Enhance order display with product details, quantity, date/time, payment, status
