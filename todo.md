@@ -126,3 +126,10 @@
 
 ## New Features (Current)
 - [x] Enhance order display with product details, quantity, date/time, payment, status
+
+
+## Recent Enhancements (Completed)
+- [x] Order detail page with payment proof upload
+- [x] Order search and date range filtering
+- [x] Member hierarchy tree visualization
+- [ ] Birthday verification workflow with ID photo upload (pending)
