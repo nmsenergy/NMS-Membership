@@ -797,8 +797,9 @@ const adminRouter = router({
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Members");
-      const buf = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
-      return { base64: buf };
+      const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+      const base64 = Buffer.from(buf).toString("base64");
+      return { base64 };
     }),
 
   memberDetail: adminProcedure
@@ -861,7 +862,9 @@ const adminRouter = router({
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Orders");
-      return { base64: XLSX.write(wb, { type: "base64", bookType: "xlsx" }) };
+      const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+      const base64 = Buffer.from(buf).toString("base64");
+      return { base64 };
     }),
 
   // Export bonuses
@@ -882,7 +885,9 @@ const adminRouter = router({
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Bonuses");
-      return { base64: XLSX.write(wb, { type: "base64", bookType: "xlsx" }) };
+      const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+      const base64 = Buffer.from(buf).toString("base64");
+      return { base64 };
     }),
 
   // Bonus report with pagination
@@ -1232,8 +1237,9 @@ const adminRouter = router({
     ];
     const instructionWs = XLSX.utils.aoa_to_sheet(instructionData);
     XLSX.utils.book_append_sheet(wb, instructionWs, "说明");
-    const buf = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
-    return { base64: buf, filename: "会员导入模板.xlsx" };
+    const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+    const base64 = Buffer.from(buf).toString("base64");
+    return { base64, filename: "会员导入模板.xlsx" };
   }),
 
   validateImport: adminProcedure
@@ -1283,8 +1289,9 @@ const adminRouter = router({
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Members");
-    const buf = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
-    return { base64: buf, filename: "members.xlsx" };
+    const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+    const base64 = Buffer.from(buf).toString("base64");
+    return { base64, filename: "members.xlsx" };
   }),
 
   getUpgradeConditions: adminProcedure.query(async () => {
@@ -1374,7 +1381,9 @@ const adminRouter = router({
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Orders");
-      return { base64: XLSX.write(wb, { type: "base64", bookType: "xlsx" }) };
+      const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+      const base64 = Buffer.from(buf).toString("base64");
+      return { base64 };
     }),
 
   getCalculationBases: adminProcedure

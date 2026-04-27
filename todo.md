@@ -142,3 +142,7 @@
 ## Current Work
 - [x] Fix admin return button navigation
 - [x] Add custom notifications system
+
+
+## Critical Bug
+- [x] Fix "Buffer not defined" error in file export functions
