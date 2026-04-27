@@ -325,3 +325,21 @@ export const manualBonusAllocations = mysqlTable("manual_bonus_allocations", {
 
 export type ManualBonusAllocation = typeof manualBonusAllocations.$inferSelect;
 export type InsertManualBonusAllocation = typeof manualBonusAllocations.$inferInsert;
+
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export const notifications = mysqlTable("notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  memberId: int("memberId").notNull(), // FK → members.id
+  title: varchar("title", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  type: mysqlEnum("type", ["ANNOUNCEMENT", "BONUS", "ORDER", "SYSTEM", "REMINDER"]).default("ANNOUNCEMENT").notNull(),
+  isRead: boolean("isRead").default(false).notNull(),
+  actionUrl: varchar("actionUrl", { length: 512 }), // optional link to related page
+  createdBy: int("createdBy"), // FK → users.id (admin who created it, null for system)
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;

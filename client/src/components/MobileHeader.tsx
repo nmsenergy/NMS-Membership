@@ -25,7 +25,7 @@ export default function MobileHeader({
     if (onBack) {
       onBack();
     } else {
-      window.history.back();
+      navigate("/");
     }
   };
 
@@ -38,7 +38,10 @@ export default function MobileHeader({
       )}
     >
       {showBack && (
-        <button onClick={handleBack} className="p-1 -ml-1 text-foreground">
+        <button 
+          onClick={handleBack}
+          className="p-1 -ml-1 text-foreground hover:bg-muted rounded transition-colors"
+        >
           <ChevronLeft size={24} />
         </button>
       )}

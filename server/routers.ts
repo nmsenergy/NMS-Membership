@@ -48,6 +48,13 @@ import {
   updateMember,
   updateOrderStatus,
   updateTopupStatus,
+  createNotification,
+  getMemberNotifications,
+  getUnreadNotificationCount,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  deleteNotification,
+  sendBulkNotification,
   updateUser,
   updateWithdrawalStatus,
   upsertAnnouncement,
@@ -1515,6 +1522,39 @@ async function distributeGratitudeBonus(
 
 // ─── App Router ───────────────────────────────────────────────────────────────
 
+const notificationRouter = router({
+  list: protectedProcedure
+    .input(z.object({ limit: z.number().default(20), offset: z.number().default(0) }))
+    .query(async ({ ctx, input }) => {
+      const member = await getMemberByUserId(ctx.user.id);
+      if (!member) throw new TRPCError({ code: "NOT_FOUND" });
+      return getMemberNotifications(member.id, input.limit, input.offset);
+    }),
+  unreadCount: protectedProcedure.query(async ({ ctx }) => {
+    const member = await getMemberByUserId(ctx.user.id);
+    if (!member) throw new TRPCError({ code: "NOT_FOUND" });
+    return getUnreadNotificationCount(member.id);
+  }),
+  markAsRead: protectedProcedure
+    .input(z.object({ notificationId: z.number() }))
+    .mutation(async ({ input }) => {
+      await markNotificationAsRead(input.notificationId);
+      return { success: true };
+    }),
+  markAllAsRead: protectedProcedure.mutation(async ({ ctx }) => {
+    const member = await getMemberByUserId(ctx.user.id);
+    if (!member) throw new TRPCError({ code: "NOT_FOUND" });
+    await markAllNotificationsAsRead(member.id);
+    return { success: true };
+  }),
+  delete: protectedProcedure
+    .input(z.object({ notificationId: z.number() }))
+    .mutation(async ({ input }) => {
+      await deleteNotification(input.notificationId);
+      return { success: true };
+    }),
+});
+
 export const appRouter = router({
   system: systemRouter,
   auth: authRouter,
@@ -1523,6 +1563,7 @@ export const appRouter = router({
   order: orderRouter,
   bonus: bonusRouter,
   announcement: announcementRouter,
+  notification: notificationRouter,
   admin: adminRouter,
 });
 

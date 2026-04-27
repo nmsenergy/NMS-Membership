@@ -7,6 +7,7 @@ import {
   bonusLedger,
   gubenLedger,
   members,
+  notifications,
   orderItems,
   orders,
   products,
@@ -673,4 +674,99 @@ export async function getOrdersWithItems(memberId?: number) {
   );
   
   return ordersWithItems;
+}
+
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export async function createNotification(data: {
+  memberId: number;
+  title: string;
+  content: string;
+  type?: "ANNOUNCEMENT" | "BONUS" | "ORDER" | "SYSTEM" | "REMINDER";
+  actionUrl?: string;
+  createdBy?: number;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  await db.insert(notifications).values({
+    memberId: data.memberId,
+    title: data.title,
+    content: data.content,
+    type: data.type || "ANNOUNCEMENT",
+    actionUrl: data.actionUrl,
+    createdBy: data.createdBy,
+  });
+}
+
+export async function getMemberNotifications(memberId: number, limit: number = 20, offset: number = 0) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select()
+    .from(notifications)
+    .where(eq(notifications.memberId, memberId))
+    .orderBy(desc(notifications.createdAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+export async function getUnreadNotificationCount(memberId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+
+  const result = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(notifications)
+    .where(and(eq(notifications.memberId, memberId), eq(notifications.isRead, false)));
+
+  return result[0]?.count || 0;
+}
+
+export async function markNotificationAsRead(notificationId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, notificationId));
+}
+
+export async function markAllNotificationsAsRead(memberId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  await db
+    .update(notifications)
+    .set({ isRead: true })
+    .where(and(eq(notifications.memberId, memberId), eq(notifications.isRead, false)));
+}
+
+export async function deleteNotification(notificationId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  await db.delete(notifications).where(eq(notifications.id, notificationId));
+}
+
+export async function sendBulkNotification(memberIds: number[], data: {
+  title: string;
+  content: string;
+  type?: "ANNOUNCEMENT" | "BONUS" | "ORDER" | "SYSTEM" | "REMINDER";
+  actionUrl?: string;
+  createdBy?: number;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  const notificationRecords = memberIds.map((memberId) => ({
+    memberId,
+    title: data.title,
+    content: data.content,
+    type: (data.type || "ANNOUNCEMENT") as "ANNOUNCEMENT" | "BONUS" | "ORDER" | "SYSTEM" | "REMINDER",
+    actionUrl: data.actionUrl,
+    createdBy: data.createdBy,
+  }));
+
+  await db.insert(notifications).values(notificationRecords);
 }

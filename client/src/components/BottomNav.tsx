@@ -1,4 +1,4 @@
-import { Home, ShoppingBag, Star, User } from "lucide-react";
+import { Home, ShoppingBag, Star, User, Bell } from "lucide-react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 
@@ -6,6 +6,7 @@ const navItems = [
   { path: "/", label: "首页", icon: Home },
   { path: "/vip-zone", label: "商城", icon: ShoppingBag },
   { path: "/orders", label: "订单", icon: Star },
+  { path: "/notifications", label: "通知", icon: Bell },
   { path: "/profile", label: "我的", icon: User },
 ];
 

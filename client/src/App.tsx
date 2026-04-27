@@ -15,6 +15,7 @@ import Withdraw from "./pages/Withdraw";
 import Upgrade from "./pages/Upgrade";
 import ExtraRewards from "./pages/ExtraRewards";
 import Announcements from "./pages/Announcements";
+import Notifications from "./pages/Notifications";
 import Register from "./pages/Register";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminMembers from "./pages/admin/AdminMembers";
@@ -43,6 +44,7 @@ function Router() {
       <Route path="/upgrade" component={Upgrade} />
       <Route path="/extra-rewards" component={ExtraRewards} />
       <Route path="/announcements" component={Announcements} />
+      <Route path="/notifications" component={Notifications} />
       {/* Admin routes */}
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/members" component={AdminMembers} />
