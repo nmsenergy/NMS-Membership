@@ -133,3 +133,7 @@
 - [x] Order search and date range filtering
 - [x] Member hierarchy tree visualization
 - [ ] Birthday verification workflow with ID photo upload (pending)
+
+
+## Bug Fixes (Current Session)
+- [x] Admin return to member page button not working
