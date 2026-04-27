@@ -798,7 +798,8 @@ const adminRouter = router({
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Members");
       const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
-      const base64 = Buffer.from(buf).toString("base64");
+      const binary = String.fromCharCode.apply(null, buf as any);
+      const base64 = btoa(binary);
       return { base64 };
     }),
 
@@ -863,7 +864,8 @@ const adminRouter = router({
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Orders");
       const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
-      const base64 = Buffer.from(buf).toString("base64");
+      const binary = String.fromCharCode.apply(null, buf as any);
+      const base64 = btoa(binary);
       return { base64 };
     }),
 
@@ -886,7 +888,8 @@ const adminRouter = router({
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Bonuses");
       const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
-      const base64 = Buffer.from(buf).toString("base64");
+      const binary = String.fromCharCode.apply(null, buf as any);
+      const base64 = btoa(binary);
       return { base64 };
     }),
 
@@ -1238,7 +1241,8 @@ const adminRouter = router({
     const instructionWs = XLSX.utils.aoa_to_sheet(instructionData);
     XLSX.utils.book_append_sheet(wb, instructionWs, "说明");
     const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
-    const base64 = Buffer.from(buf).toString("base64");
+    const binary = String.fromCharCode.apply(null, buf as any);
+    const base64 = btoa(binary);
     return { base64, filename: "会员导入模板.xlsx" };
   }),
 
@@ -1290,7 +1294,8 @@ const adminRouter = router({
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Members");
     const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
-    const base64 = Buffer.from(buf).toString("base64");
+    const binary = String.fromCharCode.apply(null, buf as any);
+    const base64 = btoa(binary);
     return { base64, filename: "members.xlsx" };
   }),
 
@@ -1382,7 +1387,8 @@ const adminRouter = router({
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Orders");
       const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
-      const base64 = Buffer.from(buf).toString("base64");
+      const binary = String.fromCharCode.apply(null, buf as any);
+      const base64 = btoa(binary);
       return { base64 };
     }),
 
