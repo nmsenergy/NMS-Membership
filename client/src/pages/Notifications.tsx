@@ -26,7 +26,16 @@ export default function Notifications() {
 
   useEffect(() => {
     if (notifications) {
-      setAllNotifications((prev) => (page === 0 ? notifications : [...prev, ...notifications]));
+      if (page === 0) {
+        setAllNotifications(notifications);
+      } else {
+        // De-duplicate by id when appending new page
+        setAllNotifications((prev) => {
+          const existingIds = new Set(prev.map((n) => n.id));
+          const newNotifications = notifications.filter((n) => !existingIds.has(n.id));
+          return [...prev, ...newNotifications];
+        });
+      }
     }
   }, [notifications, page]);
 
@@ -139,7 +148,10 @@ export default function Notifications() {
                       <CheckCircle2
                         size={18}
                         className="text-blue-600 cursor-pointer flex-shrink-0"
-                        onClick={() => handleMarkAsRead(notification.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMarkAsRead(notification.id);
+                        }}
                       />
                     )}
                   </div>
@@ -151,7 +163,10 @@ export default function Notifications() {
                   )}
                 </div>
                 <button
-                  onClick={() => handleDelete(notification.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(notification.id);
+                  }}
                   className="p-1 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
                 >
                   <Trash2 size={16} />

@@ -146,3 +146,4 @@
 
 ## Critical Bug
 - [x] Fix "Buffer not defined" error in file export functions
+- [x] Fix NotFoundError: Failed to execute 'removeChild' on 'Node' DOM reconciliation error
