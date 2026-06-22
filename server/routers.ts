@@ -990,17 +990,20 @@ const adminRouter = router({
 
   // Product CRUD
   createProduct: adminProcedure
-    .input(z.object({ name: z.string(), description: z.string().optional(), category: z.string(), price: z.number(), baseValue: z.number(), agentPrice: z.number().optional(), imageUrl: z.string().optional(), isActive: z.boolean().default(true) }))
+    .input(z.object({ name: z.string(), description: z.string().optional(), category: z.string(), price: z.number(), baseValue: z.number(), agentPrice: z.number().optional(), imageUrl: z.string().optional(), isActive: z.boolean().default(true), zone: z.enum(["VIP", "AGENT", "BOTH"]).optional() }))
     .mutation(async ({ input }) => {
-      const zone = ["AGENT_PACKAGE", "AGENT_ITEM"].includes(input.category) ? "AGENT" : ["VIP_PACKAGE", "VIP_BENEFIT_ITEM", "BIRTHDAY_ITEM", "REDEMPTION_ITEM"].includes(input.category) ? "VIP" : "BOTH";
+      let zone = input.zone;
+      if (!zone) {
+        zone = ["AGENT_PACKAGE", "AGENT_ITEM"].includes(input.category) ? "AGENT" : ["VIP_PACKAGE", "VIP_BENEFIT_ITEM", "BIRTHDAY_ITEM", "REDEMPTION_ITEM"].includes(input.category) ? "VIP" : "BOTH";
+      }
       return upsertProduct({ name: input.name, description: input.description, category: input.category as any, price: String(input.price), baseValue: String(input.baseValue), agentPrice: input.agentPrice ? String(input.agentPrice) : undefined, imageUrl: input.imageUrl, isActive: input.isActive, zone: zone as any, birthdayEligible: input.category === "BIRTHDAY_ITEM", birthdayMaxQty: 1, vipPackageCount: input.category === "VIP_PACKAGE" ? 1 : 0 });
     }),
 
   updateProduct: adminProcedure
-    .input(z.object({ id: z.number(), name: z.string().optional(), description: z.string().optional(), price: z.number().optional(), baseValue: z.number().optional(), agentPrice: z.number().optional(), imageUrl: z.string().optional(), isActive: z.boolean().optional() }))
+    .input(z.object({ id: z.number(), name: z.string().optional(), description: z.string().optional(), price: z.number().optional(), baseValue: z.number().optional(), agentPrice: z.number().optional(), imageUrl: z.string().optional(), isActive: z.boolean().optional(), zone: z.enum(["VIP", "AGENT", "BOTH"]).optional() }))
     .mutation(async ({ input }) => {
-      const { id, price, baseValue, agentPrice, ...rest } = input;
-      return upsertProduct({ id, ...rest, price: price ? String(price) : undefined, baseValue: baseValue ? String(baseValue) : undefined, agentPrice: agentPrice ? String(agentPrice) : undefined } as any);
+      const { id, price, baseValue, agentPrice, zone, ...rest } = input;
+      return upsertProduct({ id, ...rest, price: price ? String(price) : undefined, baseValue: baseValue ? String(baseValue) : undefined, agentPrice: agentPrice ? String(agentPrice) : undefined, zone: zone as any } as any);
     }),
 
   deleteProduct: adminProcedure

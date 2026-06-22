@@ -147,3 +147,10 @@
 ## Critical Bug
 - [x] Fix "Buffer not defined" error in file export functions
 - [x] Fix NotFoundError: Failed to execute 'removeChild' on 'Node' DOM reconciliation error
+
+## Product Management Enhancement (Current)
+- [x] Enhanced product zone configuration (VIP only, Agent only, or Both)
+- [x] Zone-specific pricing for each product
+- [x] Zone-specific bonus calculation standards (guben rate, org bonus rate)
+- [x] Product management UI for dual-zone configuration
+- [x] Zone-specific pricing and calculation tests (7 tests added)
