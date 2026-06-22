@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShoppingBag, Gift, Cake } from "lucide-react";
 import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function VipZone() {
   const { data: authData } = trpc.auth.me.useQuery();
@@ -22,6 +23,7 @@ export default function VipZone() {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [paymentCode, setPaymentCode] = useState("");
   const [orderType, setOrderType] = useState<"vip" | "birthday" | "redeem">("vip");
+  const [shippingLocation, setShippingLocation] = useState<"KK_AGENT" | "PUCHONG_HQ">("PUCHONG_HQ");
   const utils = trpc.useUtils();
 
   const createVipOrder = trpc.order.createVipOrder.useMutation({
@@ -46,7 +48,7 @@ export default function VipZone() {
     if (!selectedProduct) return;
     if (orderType === "vip") {
       if (!paymentCode.trim()) { toast.error("请输入付款码"); return; }
-      createVipOrder.mutate({ paymentCode: paymentCode.trim() });
+      createVipOrder.mutate({ paymentCode: paymentCode.trim(), shippingLocation });
     } else if (orderType === "birthday") {
       createBirthdayOrder.mutate({ items: [{ productId: selectedProduct.id, quantity: 1 }], paymentMethod: "ONLINE_TRANSFER" });
     } else {
@@ -154,6 +156,18 @@ export default function VipZone() {
                 <div>
                   <Label className="text-sm">VIP付款码</Label>
                   <Input placeholder="请输入代理提供的付款码" value={paymentCode} onChange={(e) => setPaymentCode(e.target.value.toUpperCase())} className="mt-1.5 font-mono" />
+                </div>
+                <div>
+                  <Label className="text-sm">出货地点</Label>
+                  <Select value={shippingLocation} onValueChange={(v) => setShippingLocation(v as "KK_AGENT" | "PUCHONG_HQ")}>
+                    <SelectTrigger className="mt-1.5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PUCHONG_HQ">Puchong总部</SelectItem>
+                      <SelectItem value="KK_AGENT">KK代理商</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </>
             )}

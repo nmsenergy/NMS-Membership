@@ -399,6 +399,7 @@ const orderRouter = router({
       z.object({
         paymentCode: z.string(),
         shippingAddress: z.string().optional(),
+        shippingLocation: z.enum(["KK_AGENT", "PUCHONG_HQ"]).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -424,6 +425,7 @@ const orderRouter = router({
           totalAmount: product.price,
           gubenUsed: 0,
           shippingAddress: input.shippingAddress,
+          shippingLocation: input.shippingLocation,
         },
         [{ productId: product.id, quantity: 1, unitPrice: product.price, baseValue: product.baseValue }]
       );

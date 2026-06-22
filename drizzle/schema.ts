@@ -138,6 +138,7 @@ export const orders = mysqlTable("orders", {
   gubenUsed: int("gubenUsed").default(0).notNull(), // 固本 points used
   notes: text("notes"),
   shippingAddress: text("shippingAddress"),
+  shippingLocation: mysqlEnum("shippingLocation", ["KK_AGENT", "PUCHONG_HQ"]), // VIP order shipping location
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

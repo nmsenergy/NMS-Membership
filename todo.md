@@ -132,7 +132,7 @@
 - [x] Order detail page with payment proof upload
 - [x] Order search and date range filtering
 - [x] Member hierarchy tree visualization
-- [ ] Birthday verification workflow with ID photo upload (pending)
+- [ ] Birthday verification workflow with ID photo upload (future enhancement)
 
 
 ## Bug Fixes (Current Session)
@@ -154,3 +154,10 @@
 - [x] Zone-specific bonus calculation standards (guben rate, org bonus rate)
 - [x] Product management UI for dual-zone configuration
 - [x] Zone-specific pricing and calculation tests (7 tests added)
+
+## VIP Order Shipping Location (Current)
+- [x] Add shipping location field to orders table (KK Agent or Puchong HQ)
+- [x] Update VIP order creation API to accept shipping location
+- [x] Add location selector to VIP order creation UI
+- [ ] Display shipping location in order details
+- [ ] Add shipping location to order exports (Excel)

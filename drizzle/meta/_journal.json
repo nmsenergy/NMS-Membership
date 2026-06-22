@@ -29,6 +29,13 @@
       "when": 1777289326527,
       "tag": "0003_mysterious_black_cat",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1782099982716,
+      "tag": "0004_smiling_star_brand",
+      "breakpoints": true
     }
   ]
 }

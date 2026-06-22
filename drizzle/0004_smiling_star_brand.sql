@@ -1,0 +1,1 @@
+ALTER TABLE `orders` ADD `shippingLocation` enum('KK_AGENT','PUCHONG_HQ');
