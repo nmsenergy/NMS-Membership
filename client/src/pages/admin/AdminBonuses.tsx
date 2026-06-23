@@ -33,8 +33,18 @@ export default function AdminBonuses() {
 
   const exportBonuses = trpc.admin.exportBonuses.useMutation({
     onSuccess: (data) => {
-      const blob = new Blob([Buffer.from(data.base64, "base64")], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-      const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `bonuses_${new Date().toISOString().split("T")[0]}.xlsx`; a.click();
+      const binaryString = atob(data.base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `bonuses_${new Date().toISOString().split("T")[0]}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
       toast.success("导出成功");
     },
     onError: (e) => toast.error(e.message),
