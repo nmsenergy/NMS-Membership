@@ -780,8 +780,7 @@ const adminRouter = router({
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Members");
       const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
-      const binary = String.fromCharCode.apply(null, buf as any);
-      const base64 = btoa(binary);
+      const base64 = Buffer.from(buf as any).toString("base64");
       return { base64 };
     }),
 
@@ -846,8 +845,7 @@ const adminRouter = router({
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Orders");
       const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
-      const binary = String.fromCharCode.apply(null, buf as any);
-      const base64 = btoa(binary);
+      const base64 = Buffer.from(buf as any).toString("base64");
       return { base64 };
     }),
 
@@ -870,8 +868,7 @@ const adminRouter = router({
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Bonuses");
       const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
-      const binary = String.fromCharCode.apply(null, buf as any);
-      const base64 = btoa(binary);
+      const base64 = Buffer.from(buf as any).toString("base64");
       return { base64 };
     }),
 
@@ -1372,8 +1369,7 @@ const adminRouter = router({
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Orders");
       const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
-      const binary = String.fromCharCode.apply(null, buf as any);
-      const base64 = btoa(binary);
+      const base64 = Buffer.from(buf as any).toString("base64");
       return { base64 };
     }),
 
