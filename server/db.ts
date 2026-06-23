@@ -19,6 +19,7 @@ import {
   rewardVisibility,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import { nanoid } from "nanoid";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -262,6 +263,10 @@ export async function createOrder(
   return order;
 }
 
+function generateVipCode() {
+  return `VIP-${nanoid(10).toUpperCase()}`;
+}
+
 export async function updateOrderStatus(
   orderId: number,
   status: typeof orders.$inferInsert["status"],
@@ -272,6 +277,47 @@ export async function updateOrderStatus(
   const update: Partial<typeof orders.$inferInsert> = { status };
   if (notes !== undefined) update.notes = notes;
   await db.update(orders).set(update).where(eq(orders.id, orderId));
+
+  // Generate VIP codes when agent order is delivered (only once)
+  if (status === "DELIVERED") {
+    const order = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
+    if (order[0] && order[0].orderType === "AGENT_ORDER") {
+      // Check if codes have already been generated for this order
+      const existingCodes = await db
+        .select()
+        .from(vipPaymentCodes)
+        .where(eq(vipPaymentCodes.agentOrderId, orderId));
+
+      // Only generate codes if none exist yet (idempotency check)
+      if (existingCodes.length === 0) {
+        // Get order items to determine which products need codes
+        const items = await db
+          .select()
+          .from(orderItems)
+          .where(eq(orderItems.orderId, orderId));
+
+        for (const item of items) {
+          const product = await db
+            .select()
+            .from(products)
+            .where(eq(products.id, item.productId))
+            .limit(1);
+
+          // Generate VIP codes for VIP_PACKAGE, VIP_BENEFIT_ITEM, and AGENT_ITEM
+          if (product[0] && ["VIP_PACKAGE", "VIP_BENEFIT_ITEM", "AGENT_ITEM"].includes(product[0].category)) {
+            for (let i = 0; i < item.quantity; i++) {
+              await createVipCode({
+                code: generateVipCode(),
+                agentOrderId: orderId,
+                productId: item.productId,
+                issuedToMemberId: order[0].memberId,
+              });
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 // ─── VIP Payment Codes ────────────────────────────────────────────────────────

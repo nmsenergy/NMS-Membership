@@ -161,3 +161,10 @@
 - [x] Add location selector to VIP order creation UI
 - [ ] Display shipping location in order details
 - [ ] Add shipping location to order exports (Excel)
+
+## Agent Order Shipping Location & VIP Code Generation (Current)
+- [x] Add shipping location support to agent order creation
+- [x] Add location selector to agent order creation UI
+- [x] Implement VIP code generation when order status changes to DELIVERED
+- [x] VIP code generation on order delivery (11 comprehensive tests)
+- [x] Test agent order with shipping location and VIP code generation

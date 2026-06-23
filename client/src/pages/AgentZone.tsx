@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Package, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 export default function AgentZone() {
   const [, navigate] = useLocation();
@@ -18,6 +20,7 @@ export default function AgentZone() {
   const { data: products } = trpc.product.list.useQuery({ zone: "AGENT" }, { enabled: isAgentOrAbove(member?.rank ?? "") });
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [qty, setQty] = useState(1);
+  const [shippingLocation, setShippingLocation] = useState<"KK_AGENT" | "PUCHONG_HQ">("PUCHONG_HQ");
   const utils = trpc.useUtils();
 
   const createAgentOrder = trpc.order.createAgentOrder.useMutation({
@@ -95,10 +98,22 @@ export default function AgentZone() {
               </div>
             </div>
             <p className="text-sm font-semibold">总计: {formatRM((parseFloat(selectedProduct?.agentPrice || selectedProduct?.price || "0")) * qty)}</p>
+            <div>
+              <Label className="text-sm">出货地点</Label>
+              <Select value={shippingLocation} onValueChange={(v) => setShippingLocation(v as "KK_AGENT" | "PUCHONG_HQ")}>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PUCHONG_HQ">Puchong总部</SelectItem>
+                  <SelectItem value="KK_AGENT">KK代理商</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelectedProduct(null)}>取消</Button>
-            <Button onClick={() => createAgentOrder.mutate({ items: [{ productId: selectedProduct.id, quantity: qty }], paymentMethod: "ONLINE_TRANSFER" })} disabled={createAgentOrder.isPending}>
+            <Button onClick={() => createAgentOrder.mutate({ items: [{ productId: selectedProduct.id, quantity: qty }], paymentMethod: "ONLINE_TRANSFER", shippingLocation })} disabled={createAgentOrder.isPending}>
               {createAgentOrder.isPending ? "处理中..." : "确认下单"}
             </Button>
           </DialogFooter>

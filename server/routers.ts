@@ -83,9 +83,7 @@ function generateReferralCode() {
   return nanoid(8).toUpperCase();
 }
 
-function generateVipCode() {
-  return `VIP-${nanoid(10).toUpperCase()}`;
-}
+
 
 const RANK_ORDER = { VIP: 0, M_AGENT: 1, SM: 2, GM: 3, CEO: 4 };
 
@@ -327,6 +325,7 @@ const orderRouter = router({
         paymentMethod: z.enum(["ONLINE_TRANSFER", "OFFLINE_PAYMENT"]),
         paymentProofUrl: z.string().optional(),
         shippingAddress: z.string().optional(),
+        shippingLocation: z.enum(["KK_AGENT", "PUCHONG_HQ"]).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -338,7 +337,6 @@ const orderRouter = router({
 
       let totalAmount = 0;
       const orderItemsData = [];
-      const codesData = [];
 
       for (const item of input.items) {
         const product = await getProductById(item.productId);
@@ -351,12 +349,6 @@ const orderRouter = router({
           unitPrice: String(price),
           baseValue: product.baseValue,
         });
-        // Generate VIP codes for VIP_PACKAGE and VIP_BENEFIT_ITEM and AGENT_ITEM
-        if (["VIP_PACKAGE", "VIP_BENEFIT_ITEM", "AGENT_ITEM"].includes(product.category)) {
-          for (let i = 0; i < item.quantity; i++) {
-            codesData.push({ productId: item.productId, code: generateVipCode() });
-          }
-        }
       }
 
       const orderNo = generateOrderNo();
@@ -371,27 +363,15 @@ const orderRouter = router({
           totalAmount: String(totalAmount),
           gubenUsed: 0,
           shippingAddress: input.shippingAddress,
+          shippingLocation: input.shippingLocation,
         },
         orderItemsData
       );
 
-      // Create VIP codes
-      for (const codeData of codesData) {
-        await createVipCode({
-          code: codeData.code,
-          agentOrderId: order.id,
-          productId: codeData.productId,
-          issuedToMemberId: member.id,
-        });
-      }
+      // VIP codes will be generated when order status changes to DELIVERED
+      // This ensures codes are only issued after payment is confirmed and order is completed
 
-      // Update member's VIP package count for agent packages
-      const agentPackageItems = input.items.filter(async (item) => {
-        const product = await getProductById(item.productId);
-        return product?.category === "AGENT_PACKAGE";
-      });
-
-      return { order, codes: codesData.map((c) => c.code) };
+      return { order, codes: [] };
     }),
 
   createVipOrder: protectedProcedure
