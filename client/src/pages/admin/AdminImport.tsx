@@ -24,6 +24,8 @@ export default function AdminImport() {
   const [isLoading, setIsLoading] = useState(false);
   const [importStep, setImportStep] = useState<"select" | "preview" | "validating" | "importing" | "result">("select");
   const [importResult, setImportResult] = useState<{ created: number; failed: Array<{ row: ImportRow; reason: string }>; total: number } | null>(null);
+  const [editingRowIndex, setEditingRowIndex] = useState<number | null>(null);
+  const [editingData, setEditingData] = useState<ImportRow | null>(null);
 
   const downloadTemplateMutation = trpc.admin.downloadTemplate.useMutation();
   const validateImportMutation = trpc.admin.validateImport.useMutation();
@@ -94,7 +96,35 @@ export default function AdminImport() {
     }
   };
 
-  const handleImport = async () => {
+  const handleEditRow = (index: number) => {
+    setEditingRowIndex(index);
+    setEditingData({ ...importData[index] });
+  };
+
+  const handleSaveEdit = () => {
+    if (editingRowIndex !== null && editingData) {
+      const newData = [...importData];
+      newData[editingRowIndex] = editingData;
+      setImportData(newData);
+      setEditingRowIndex(null);
+      setEditingData(null);
+      // Re-validate after edit
+      handleValidate();
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRowIndex(null);
+    setEditingData(null);
+  };
+
+  const handleEditFieldChange = (field: keyof ImportRow, value: string) => {
+    if (editingData) {
+      setEditingData({ ...editingData, [field]: value });
+    }
+  };
+
+    const handleImport = async () => {
     if (validationErrors.length > 0) {
       toast.error("请先修复所有错误");
       return;
@@ -235,10 +265,11 @@ export default function AdminImport() {
           )}
 
           {/* Data Preview Table */}
-          <div className="overflow-x-auto mb-4">
+          <div className="overflow-x-auto mb-4 border rounded-lg">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
+                  <th className="text-left p-2 w-20">行号</th>
                   <th className="text-left p-2">姓名</th>
                   <th className="text-left p-2">电邮地址</th>
                   <th className="text-left p-2">国家</th>
@@ -246,25 +277,48 @@ export default function AdminImport() {
                   <th className="text-left p-2">邮区编号</th>
                   <th className="text-left p-2">城市</th>
                   <th className="text-left p-2">推荐人</th>
+                  <th className="text-left p-2 w-24">操作</th>
                 </tr>
               </thead>
               <tbody>
-                {importData.slice(0, 10).map((row, i) => (
-                  <tr key={i} className="border-b hover:bg-muted/30">
-                    <td className="p-2">{row.姓名}</td>
-                    <td className="p-2 text-xs font-mono">{row.电邮地址}</td>
-                    <td className="p-2">{row.国家 || "-"}</td>
-                    <td className="p-2">{row.州属 || "-"}</td>
-                    <td className="p-2">{row.邮区编号 || "-"}</td>
-                    <td className="p-2">{row.城市 || "-"}</td>
-                    <td className="p-2">{row.推荐人}</td>
+                {importData.map((row, i) => (
+                  <tr 
+                    key={i} 
+                    className={editingRowIndex === i ? "bg-blue-50 border-b" : "border-b hover:bg-muted/30"}
+                  >
+                    <td className="p-2 text-xs text-muted-foreground">{i + 1}</td>
+                    {editingRowIndex === i && editingData ? (
+                      <>
+                        <td className="p-2"><input type="text" value={editingData.姓名} onChange={(e) => handleEditFieldChange('姓名', e.target.value)} className="w-full px-2 py-1 border rounded text-sm" /></td>
+                        <td className="p-2"><input type="email" value={editingData.电邮地址} onChange={(e) => handleEditFieldChange('电邮地址', e.target.value)} className="w-full px-2 py-1 border rounded text-sm" /></td>
+                        <td className="p-2"><input type="text" value={editingData.国家 || ''} onChange={(e) => handleEditFieldChange('国家', e.target.value)} className="w-full px-2 py-1 border rounded text-sm" /></td>
+                        <td className="p-2"><input type="text" value={editingData.州属 || ''} onChange={(e) => handleEditFieldChange('州属', e.target.value)} className="w-full px-2 py-1 border rounded text-sm" /></td>
+                        <td className="p-2"><input type="text" value={editingData.邮区编号 || ''} onChange={(e) => handleEditFieldChange('邮区编号', e.target.value)} className="w-full px-2 py-1 border rounded text-sm" /></td>
+                        <td className="p-2"><input type="text" value={editingData.城市 || ''} onChange={(e) => handleEditFieldChange('城市', e.target.value)} className="w-full px-2 py-1 border rounded text-sm" /></td>
+                        <td className="p-2"><input type="text" value={editingData.推荐人} onChange={(e) => handleEditFieldChange('推荐人', e.target.value)} className="w-full px-2 py-1 border rounded text-sm" /></td>
+                        <td className="p-2 flex gap-1">
+                          <Button size="sm" variant="default" onClick={handleSaveEdit} className="text-xs">保存</Button>
+                          <Button size="sm" variant="outline" onClick={handleCancelEdit} className="text-xs">取消</Button>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="p-2">{row.姓名}</td>
+                        <td className="p-2 text-xs font-mono">{row.电邮地址}</td>
+                        <td className="p-2">{row.国家 || "-"}</td>
+                        <td className="p-2">{row.州属 || "-"}</td>
+                        <td className="p-2">{row.邮区编号 || "-"}</td>
+                        <td className="p-2">{row.城市 || "-"}</td>
+                        <td className="p-2">{row.推荐人}</td>
+                        <td className="p-2">
+                          <Button size="sm" variant="outline" onClick={() => handleEditRow(i)} className="text-xs">编辑</Button>
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
-            {importData.length > 10 && (
-              <p className="text-sm text-muted-foreground p-2">...还有{importData.length - 10}行数据</p>
-            )}
           </div>
 
           {/* Action Buttons */}
