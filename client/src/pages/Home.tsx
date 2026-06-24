@@ -250,8 +250,12 @@ export default function Home() {
             ...(isAgentOrAbove(rank) && isVisible("agent_zone") ? [{ label: "代理区", desc: "代理专属产品", path: "/agent-zone", icon: BoxIcon, featureKey: "agent_zone" }] : []),
             { label: "我的订单", desc: "查看所有订单记录", path: "/orders", icon: OrderIcon, featureKey: "orders" },
             { label: "我的团队", desc: "查看团队成员", path: "/team", icon: TeamIcon, featureKey: "team" },
-            ...(isAgentOrAbove(rank) && isVisible("extra_rewards") ? [{ label: "额外奖励", desc: "汽车津贴、旅游奖励", path: "/extra-rewards", icon: GiftIcon, featureKey: "extra_rewards" }] : []),
-          ].filter((item) => isVisible((item as any).featureKey ?? "")).map((item, i, arr) => {
+            ...(isAgentOrAbove(rank) && (isVisible("car_allowance") || isVisible("travel_reward")) ? [{ label: "额外奖励", desc: "汽车津贴、旅游奖励", path: "/extra-rewards", icon: GiftIcon, featureKey: "_always" }] : []),
+          ].filter((item) => {
+              const fk = (item as any).featureKey ?? "";
+              if (fk === "_always") return true; // already gated above
+              return isVisible(fk);
+            }).map((item, i, arr) => {
             const Icon = item.icon;
             return (
               <button
