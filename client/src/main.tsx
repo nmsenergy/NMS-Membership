@@ -8,17 +8,6 @@ import App from "./App";
 import { getLoginUrl } from "./const";
 import "./index.css";
 
-// Block unload/beforeunload listeners to comply with Permissions-Policy
-if (typeof window !== "undefined") {
-  const originalAddEventListener = window.addEventListener;
-  window.addEventListener = function(this: Window, type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) {
-    if (type === "unload" || type === "beforeunload") {
-      return;
-    }
-    return originalAddEventListener.call(this, type, listener, options);
-  } as any;
-}
-
 const queryClient = new QueryClient();
 
 const redirectToLoginIfUnauthorized = (error: unknown) => {
