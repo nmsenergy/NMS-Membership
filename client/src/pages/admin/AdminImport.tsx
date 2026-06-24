@@ -27,7 +27,10 @@ export default function AdminImport() {
   const [importResult, setImportResult] = useState<{ created: number; failed: Array<{ row: ImportRow; reason: string }>; total: number } | null>(null);
   const [editingRowIndex, setEditingRowIndex] = useState<number | null>(null);
   const [editingData, setEditingData] = useState<ImportRow | null>(null);
-  const [memberList, setMemberList] = useState<Array<{ id: number; name: string; referralCode: string; rank: string }>>([]);
+  const [memberList, setMemberList] = useState<Array<{ id: number; name: string; referralCode: string; rank: string; phone: string }>>([]);
+  const [referrerSearchOpen, setReferrerSearchOpen] = useState(false);
+  const [referrerSearchText, setReferrerSearchText] = useState('');
+  const [filteredMembers, setFilteredMembers] = useState<Array<{ id: number; name: string; referralCode: string; rank: string; phone: string }>>([]);
 
   const downloadTemplateMutation = trpc.admin.downloadTemplate.useMutation();
   const memberListQuery = trpc.admin.memberList.useQuery();
@@ -39,6 +42,19 @@ export default function AdminImport() {
       setMemberList(memberListQuery.data);
     }
   }, [memberListQuery.data]);
+
+  useEffect(() => {
+    if (referrerSearchText.trim() === '') {
+      setFilteredMembers(memberList);
+    } else {
+      const searchLower = referrerSearchText.toLowerCase();
+      const filtered = memberList.filter(member =>
+        member.name.toLowerCase().includes(searchLower) ||
+        (member.phone && member.phone.includes(referrerSearchText))
+      );
+      setFilteredMembers(filtered);
+    }
+  }, [referrerSearchText, memberList]);
 
   const handleDownloadTemplate = async () => {
     try {
@@ -304,19 +320,44 @@ export default function AdminImport() {
                         <td className="p-2"><input type="text" value={editingData.州属 || ''} onChange={(e) => handleEditFieldChange('州属', e.target.value)} className="w-full px-2 py-1 border rounded text-sm" /></td>
                         <td className="p-2"><input type="text" value={editingData.邮区编号 || ''} onChange={(e) => handleEditFieldChange('邮区编号', e.target.value)} className="w-full px-2 py-1 border rounded text-sm" /></td>
                         <td className="p-2"><input type="text" value={editingData.城市 || ''} onChange={(e) => handleEditFieldChange('城市', e.target.value)} className="w-full px-2 py-1 border rounded text-sm" /></td>
-                        <td className="p-2">
-                          <select 
-                            value={editingData.推荐人} 
-                            onChange={(e) => handleEditFieldChange('推荐人', e.target.value)} 
-                            className="w-full px-2 py-1 border rounded text-sm"
-                          >
-                            <option value="">-- 选择推荐人 --</option>
-                            {memberList.map((member) => (
-                              <option key={member.id} value={member.name}>
-                                {member.name} ({member.rank})
-                              </option>
-                            ))}
-                          </select>
+                        <td className="p-2 relative">
+                          <div className="relative">
+                            <input
+                              type="text"
+                              placeholder="搜索姓名或手机号"
+                              value={referrerSearchText}
+                              onChange={(e) => {
+                                setReferrerSearchText(e.target.value);
+                                setReferrerSearchOpen(true);
+                              }}
+                              onFocus={() => setReferrerSearchOpen(true)}
+                              className="w-full px-2 py-1 border rounded text-sm"
+                            />
+                            {referrerSearchOpen && (
+                              <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded shadow-lg z-50 max-h-48 overflow-y-auto">
+                                {filteredMembers.length > 0 ? (
+                                  filteredMembers.map((member) => (
+                                    <div
+                                      key={member.id}
+                                      onClick={() => {
+                                        handleEditFieldChange('推荐人', member.name);
+                                        setReferrerSearchText('');
+                                        setReferrerSearchOpen(false);
+                                      }}
+                                      className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b last:border-b-0"
+                                    >
+                                      <div className="font-medium">{member.name}</div>
+                                      <div className="text-xs text-gray-500">
+                                        {member.rank} {member.phone && `· ${member.phone}`}
+                                      </div>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <div className="px-3 py-2 text-sm text-gray-500">未找到匹配的会员</div>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </td>
                         <td className="p-2 flex gap-1">
                           <Button size="sm" variant="default" onClick={handleSaveEdit} className="text-xs">保存</Button>

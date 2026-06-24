@@ -1029,6 +1029,7 @@ const adminRouter = router({
       name: user?.name ?? member.referralCode,
       referralCode: member.referralCode,
       rank: member.rank,
+      phone: member.phone ?? '',
     }));
   }),
 
