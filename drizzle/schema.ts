@@ -139,7 +139,7 @@ export const orders = mysqlTable("orders", {
   gubenUsed: int("gubenUsed").default(0).notNull(), // 固本 points used
   notes: text("notes"),
   shippingAddress: text("shippingAddress"),
-  shippingLocation: mysqlEnum("shippingLocation", ["KK_AGENT", "PUCHONG_HQ"]), // VIP order shipping location
+  shippingLocation: mysqlEnum("shippingLocation", ["KK_STOCKIST", "PUCHONG_HQ"]), // VIP order shipping location
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -399,7 +399,7 @@ export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;
 export const regionalManagerConfig = mysqlTable("regional_manager_config", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull().unique(), // FK → users.id (must have role='regional_manager')
-  allowedLocations: varchar("allowedLocations", { length: 255 }).notNull(), // JSON array of shipping locations, e.g. ["KK_AGENT","PUCHONG_HQ"]
+  allowedLocations: varchar("allowedLocations", { length: 255 }).notNull(), // JSON array of shipping locations, e.g. ["KK_STOCKIST","PUCHONG_HQ"]
   description: text("description"), // Optional description for this regional manager
   isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

@@ -24,7 +24,7 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
 };
 
 const SHIPPING_LOCATION_LABELS: Record<string, string> = {
-  KK_AGENT: "KK代理商",
+  KK_STOCKIST: "KK Stockist",
   PUCHONG_HQ: "Puchong总部",
 };
 
@@ -62,7 +62,7 @@ export default function Orders() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">全部出货点</SelectItem>
-              <SelectItem value="KK_AGENT">KK代理商</SelectItem>
+              <SelectItem value="KK_STOCKIST">KK Stockist</SelectItem>
               <SelectItem value="PUCHONG_HQ">Puchong总部</SelectItem>
             </SelectContent>
           </Select>

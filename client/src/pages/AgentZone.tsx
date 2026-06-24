@@ -20,7 +20,7 @@ export default function AgentZone() {
   const { data: products } = trpc.product.list.useQuery({ zone: "AGENT" }, { enabled: isAgentOrAbove(member?.rank ?? "") });
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [qty, setQty] = useState(1);
-  const [shippingLocation, setShippingLocation] = useState<"KK_AGENT" | "PUCHONG_HQ">("PUCHONG_HQ");
+  const [shippingLocation, setShippingLocation] = useState<"KK_STOCKIST" | "PUCHONG_HQ">("PUCHONG_HQ");
   const utils = trpc.useUtils();
 
   const createAgentOrder = trpc.order.createAgentOrder.useMutation({
@@ -100,13 +100,13 @@ export default function AgentZone() {
             <p className="text-sm font-semibold">总计: {formatRM((parseFloat(selectedProduct?.agentPrice || selectedProduct?.price || "0")) * qty)}</p>
             <div>
               <Label className="text-sm">出货地点</Label>
-              <Select value={shippingLocation} onValueChange={(v) => setShippingLocation(v as "KK_AGENT" | "PUCHONG_HQ")}>
+              <Select value={shippingLocation} onValueChange={(v) => setShippingLocation(v as "KK_STOCKIST" | "PUCHONG_HQ")}>
                 <SelectTrigger className="mt-1.5">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="PUCHONG_HQ">Puchong总部</SelectItem>
-                  <SelectItem value="KK_AGENT">KK代理商</SelectItem>
+                  <SelectItem value="KK_STOCKIST">KK Stockist</SelectItem>
                 </SelectContent>
               </Select>
             </div>

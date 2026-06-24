@@ -580,7 +580,7 @@ const orderRouter = router({
         paymentMethod: z.enum(["ONLINE_TRANSFER", "OFFLINE_PAYMENT"]),
         paymentProofUrl: z.string().optional(),
         shippingAddress: z.string().optional(),
-        shippingLocation: z.enum(["KK_AGENT", "PUCHONG_HQ"]).optional(),
+        shippingLocation: z.enum(["KK_STOCKIST", "PUCHONG_HQ"]).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -634,7 +634,7 @@ const orderRouter = router({
       z.object({
         paymentCode: z.string(),
         shippingAddress: z.string().optional(),
-        shippingLocation: z.enum(["KK_AGENT", "PUCHONG_HQ"]).optional(),
+        shippingLocation: z.enum(["KK_STOCKIST", "PUCHONG_HQ"]).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -1247,7 +1247,7 @@ const adminRouter = router({
           下单人: memberUser?.name ?? "",
           产品: productNames.join("; ") || "",
           送货地址: order.shippingAddress ?? "",
-          出货点: order.shippingLocation === "KK_AGENT" ? "KK代理商" : order.shippingLocation === "PUCHONG_HQ" ? "Puchong总部" : "",
+          出货点: order.shippingLocation === "KK_STOCKIST" ? "KK Stockist" : order.shippingLocation === "PUCHONG_HQ" ? "Puchong总部" : "",
           订单类型: order.orderType,
           订单状态: order.status,
           金额: order.totalAmount,

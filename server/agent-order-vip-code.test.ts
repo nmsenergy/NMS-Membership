@@ -11,12 +11,12 @@ describe("Agent Order Shipping Location & VIP Code Generation", () => {
       paymentMethod: "ONLINE_TRANSFER" as const,
       totalAmount: "500.00",
       gubenUsed: 0,
-      shippingLocation: "KK_AGENT" as const,
+      shippingLocation: "KK_STOCKIST" as const,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
-    expect(order.shippingLocation).toBe("KK_AGENT");
+    expect(order.shippingLocation).toBe("KK_STOCKIST");
     expect(order.orderType).toBe("AGENT_ORDER");
   });
 
@@ -112,42 +112,42 @@ describe("Agent Order Shipping Location & VIP Code Generation", () => {
   });
 
   it("should support both shipping locations for agent orders", () => {
-    const locations = ["KK_AGENT", "PUCHONG_HQ"];
+    const locations = ["KK_STOCKIST", "PUCHONG_HQ"];
     locations.forEach((loc) => {
       const order = {
         id: 1,
         shippingLocation: loc,
         orderType: "AGENT_ORDER",
       };
-      expect(["KK_AGENT", "PUCHONG_HQ"]).toContain(order.shippingLocation);
+      expect(["KK_STOCKIST", "PUCHONG_HQ"]).toContain(order.shippingLocation);
     });
   });
 
   it("should preserve shipping location through agent order lifecycle", () => {
     const order = {
       id: 1,
-      shippingLocation: "KK_AGENT" as const,
+      shippingLocation: "KK_STOCKIST" as const,
       status: "PROCESSING" as const,
     };
 
     // Simulate status updates
     const shippedOrder = { ...order, status: "SHIPPED" as const };
-    expect(shippedOrder.shippingLocation).toBe("KK_AGENT");
+    expect(shippedOrder.shippingLocation).toBe("KK_STOCKIST");
 
     const deliveredOrder = { ...shippedOrder, status: "DELIVERED" as const };
-    expect(deliveredOrder.shippingLocation).toBe("KK_AGENT");
+    expect(deliveredOrder.shippingLocation).toBe("KK_STOCKIST");
   });
 
   it("should filter agent orders by shipping location", () => {
     const orders = [
-      { id: 1, orderType: "AGENT_ORDER", shippingLocation: "KK_AGENT" },
+      { id: 1, orderType: "AGENT_ORDER", shippingLocation: "KK_STOCKIST" },
       { id: 2, orderType: "AGENT_ORDER", shippingLocation: "PUCHONG_HQ" },
-      { id: 3, orderType: "AGENT_ORDER", shippingLocation: "KK_AGENT" },
+      { id: 3, orderType: "AGENT_ORDER", shippingLocation: "KK_STOCKIST" },
       { id: 4, orderType: "VIP_ORDER", shippingLocation: "PUCHONG_HQ" },
     ];
 
     const agentOrdersKK = orders.filter(
-      (o) => o.orderType === "AGENT_ORDER" && o.shippingLocation === "KK_AGENT"
+      (o) => o.orderType === "AGENT_ORDER" && o.shippingLocation === "KK_STOCKIST"
     );
     expect(agentOrdersKK).toHaveLength(2);
 

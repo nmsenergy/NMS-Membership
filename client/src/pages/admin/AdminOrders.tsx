@@ -28,7 +28,7 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
 };
 
 const SHIPPING_LOCATION_LABELS: Record<string, string> = {
-  KK_AGENT: "KK代理商",
+  KK_STOCKIST: "KK Stockist",
   PUCHONG_HQ: "Puchong总部",
 };
 

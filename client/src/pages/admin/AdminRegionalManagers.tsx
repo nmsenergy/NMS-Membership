@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Edit, Trash2, MapPin, Mail, User, CheckSquare, Square, Download, Upload } from "lucide-react";
 import { toast } from "sonner";
 
-const SHIPPING_LOCATIONS = ["KK_AGENT", "PUCHONG_HQ"];
+const SHIPPING_LOCATIONS = ["KK_STOCKIST", "PUCHONG_HQ"];
 
 export default function AdminRegionalManagers() {
   const [showDialog, setShowDialog] = useState(false);

@@ -23,7 +23,7 @@ export default function VipZone() {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [paymentCode, setPaymentCode] = useState("");
   const [orderType, setOrderType] = useState<"vip" | "birthday" | "redeem">("vip");
-  const [shippingLocation, setShippingLocation] = useState<"KK_AGENT" | "PUCHONG_HQ">("PUCHONG_HQ");
+  const [shippingLocation, setShippingLocation] = useState<"KK_STOCKIST" | "PUCHONG_HQ">("PUCHONG_HQ");
   const utils = trpc.useUtils();
 
   const createVipOrder = trpc.order.createVipOrder.useMutation({
@@ -164,13 +164,13 @@ export default function VipZone() {
                 </div>
                 <div>
                   <Label className="text-sm">出货地点</Label>
-                  <Select value={shippingLocation} onValueChange={(v) => setShippingLocation(v as "KK_AGENT" | "PUCHONG_HQ")}>
+                  <Select value={shippingLocation} onValueChange={(v) => setShippingLocation(v as "KK_STOCKIST" | "PUCHONG_HQ")}>
                     <SelectTrigger className="mt-1.5">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="PUCHONG_HQ">Puchong总部</SelectItem>
-                      <SelectItem value="KK_AGENT">KK代理商</SelectItem>
+                      <SelectItem value="KK_STOCKIST">KK Stockist</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
