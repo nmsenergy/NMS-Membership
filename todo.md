@@ -351,3 +351,11 @@
 - [x] Display discount badge on product cards (red "优惠产品" badge)
 - [x] Test discount product filtering and display
 - [x] Verify build success
+
+## 推薦人不存在處理策略 (Current)
+- [x] 前端：添加策略選擇 UI（跳過該行 / 設為根節點）
+- [x] 前端：將策略參數傳遞給後端 importMembers
+- [x] 後端：importMembers 接受 missingReferrerStrategy 參數
+- [x] 後端：根據策略跳過或設為根節點
+- [x] 後端：validateImport 放寬推薦人必填限制
+- [x] 測試：驗證兩種策略的行為

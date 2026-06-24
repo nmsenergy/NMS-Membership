@@ -1617,10 +1617,14 @@ const adminRouter = router({
 
   // Import members from data
   importMembers: adminProcedure
-    .input(z.object({ csvData: z.string() }))
+    .input(z.object({
+      csvData: z.string(),
+      missingReferrerStrategy: z.enum(['skip', 'root']).default('skip'),
+    }))
     .mutation(async ({ input }) => {
       const lines = input.csvData.trim().split('\n');
       if (lines.length < 2) return { created: 0, failed: [], total: 0 };
+      const strategy = input.missingReferrerStrategy;
       
       // Parse header to detect format (Chinese or English)
       const headerLine = lines[0];
@@ -1723,12 +1727,17 @@ const adminRouter = router({
           }
           
           // Find referrer by name from pre-loaded map
-          let referrerId;
+          let referrerId: number | undefined;
           if (row.referrerName && row.referrerName.trim()) {
             referrerId = referrerMap.get(row.referrerName);
             if (!referrerId) {
-              failed.push({ row: importRow, reason: `推荐人 "${row.referrerName}" 不存在` });
-              continue;
+              if (strategy === 'skip') {
+                failed.push({ row: importRow, reason: `推荐人 "${row.referrerName}" 不存在，已跳过` });
+                continue;
+              } else {
+                // strategy === 'root': create as root node (no referrer)
+                referrerId = undefined;
+              }
             }
           }
           
@@ -1861,7 +1870,7 @@ const adminRouter = router({
         
         if (!name?.trim()) errors.push({ row: i + 1, error: "Name/姓名 cannot be empty" });
         if (!email?.trim()) errors.push({ row: i + 1, error: "Email/电邮地址 cannot be empty" });
-        if (!referrer?.trim()) errors.push({ row: i + 1, error: "Referrer Name/推荐人 cannot be empty" });
+        // referrerName is optional - missing referrer is handled by missingReferrerStrategy (skip or root)
         if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push({ row: i + 1, error: "Invalid email format" });
       }
       return { valid: errors.length === 0, errors, totalRows: input.data.length };

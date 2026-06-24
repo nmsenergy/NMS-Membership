@@ -32,6 +32,8 @@ export default function AdminImport() {
   const [referrerSearchText, setReferrerSearchText] = useState('');
   const [filteredMembers, setFilteredMembers] = useState<Array<{ id: number; name: string; referralCode: string; rank: string; phone: string }>>([]);
 
+  const [missingReferrerStrategy, setMissingReferrerStrategy] = useState<'skip' | 'root'>('skip');
+
   const downloadTemplateMutation = trpc.admin.downloadTemplate.useMutation();
   const memberListQuery = trpc.admin.memberList.useQuery();
   const validateImportMutation = trpc.admin.validateImport.useMutation();
@@ -236,8 +238,8 @@ export default function AdminImport() {
       });
       const csvData = csvLines.join("\n");
       
-      console.log(`[Import] Starting import of ${importData.length} members`);
-      const result = await importMembersMutation.mutateAsync({ csvData });
+      console.log(`[Import] Starting import of ${importData.length} members, strategy: ${missingReferrerStrategy}`);
+      const result = await importMembersMutation.mutateAsync({ csvData, missingReferrerStrategy });
       console.log(`[Import] Success: ${result.created} members imported, ${result.failed?.length || 0} failed`);
       
       toast.dismiss(toastId);
@@ -443,6 +445,41 @@ export default function AdminImport() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Missing Referrer Strategy */}
+          <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-sm font-semibold text-amber-900 mb-3">推荐人不存在时的处理策略</p>
+            <div className="flex gap-4">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="missingReferrerStrategy"
+                  value="skip"
+                  checked={missingReferrerStrategy === 'skip'}
+                  onChange={() => setMissingReferrerStrategy('skip')}
+                  className="mt-0.5"
+                />
+                <div>
+                  <p className="text-sm font-medium text-amber-900">跳过该行</p>
+                  <p className="text-xs text-amber-700">推荐人不存在时，跳过该会员，记录为失败</p>
+                </div>
+              </label>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="missingReferrerStrategy"
+                  value="root"
+                  checked={missingReferrerStrategy === 'root'}
+                  onChange={() => setMissingReferrerStrategy('root')}
+                  className="mt-0.5"
+                />
+                <div>
+                  <p className="text-sm font-medium text-amber-900">设为根节点</p>
+                  <p className="text-xs text-amber-700">推荐人不存在时，将该会员设为无推荐人的根节点</p>
+                </div>
+              </label>
+            </div>
           </div>
 
           {/* Action Buttons */}

@@ -83,9 +83,9 @@ describe("Member Import Template", () => {
         valid: false,
       },
       {
-        name: "Missing referrer",
+        name: "Missing referrer (allowed - will use strategy)",
         row: { name: "张三", email: "zhang@example.com", referrerName: "" },
-        valid: false,
+        valid: true,
       },
       {
         name: "Invalid email format",
@@ -100,7 +100,7 @@ describe("Member Import Template", () => {
 
       if (!row.name?.trim()) errors.push("姓名不能为空");
       if (!row.email?.trim()) errors.push("电邮地址不能为空");
-      if (!row.referrerName?.trim()) errors.push("推荐人不能为空");
+      // referrerName is optional - missing referrer handled by strategy (skip or root)
       if (row.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) {
         errors.push("电邮地址格式错误");
       }
@@ -184,5 +184,74 @@ describe("Member Import Template", () => {
 
     expect(rows[0].name).toBe("王小明");
     expect(rows[1].name).toBe("李四");
+  });
+
+  it("should apply 'skip' strategy: skip rows with missing referrer", async () => {
+    // Simulate the strategy logic for 'skip'
+    const rows = [
+      { name: "张三", email: "zhang@example.com", referrerName: "不存在的人" },
+      { name: "李四", email: "li@example.com", referrerName: "" },
+    ];
+    const referrerMap = new Map<string, number>(); // empty map - no referrers exist
+    const strategy = 'skip';
+    const created: string[] = [];
+    const failed: Array<{ name: string; reason: string }> = [];
+
+    for (const row of rows) {
+      if (row.referrerName && row.referrerName.trim()) {
+        const referrerId = referrerMap.get(row.referrerName);
+        if (!referrerId) {
+          if (strategy === 'skip') {
+            failed.push({ name: row.name, reason: `推荐人 "${row.referrerName}" 不存在，已跳过` });
+            continue;
+          }
+        }
+      }
+      created.push(row.name);
+    }
+
+    // 张三 should be skipped (referrer not found), 李四 should be created (no referrer = root)
+    expect(failed).toHaveLength(1);
+    expect(failed[0].name).toBe("张三");
+    expect(failed[0].reason).toContain("不存在的人");
+    expect(created).toHaveLength(1);
+    expect(created[0]).toBe("李四");
+  });
+
+  it("should apply 'root' strategy: create as root node when referrer missing", async () => {
+    // Simulate the strategy logic for 'root'
+    const rows = [
+      { name: "张三", email: "zhang@example.com", referrerName: "不存在的人" },
+      { name: "李四", email: "li@example.com", referrerName: "" },
+    ];
+    const referrerMap = new Map<string, number>(); // empty map - no referrers exist
+    const strategy = 'root';
+    const created: Array<{ name: string; referrerId: number | undefined }> = [];
+    const failed: Array<{ name: string; reason: string }> = [];
+
+    for (const row of rows) {
+      let referrerId: number | undefined;
+      if (row.referrerName && row.referrerName.trim()) {
+        referrerId = referrerMap.get(row.referrerName);
+        if (!referrerId) {
+          if (strategy === 'skip') {
+            failed.push({ name: row.name, reason: `推荐人 不存在` });
+            continue;
+          } else {
+            // root strategy: create without referrer
+            referrerId = undefined;
+          }
+        }
+      }
+      created.push({ name: row.name, referrerId });
+    }
+
+    // Both should be created as root nodes
+    expect(failed).toHaveLength(0);
+    expect(created).toHaveLength(2);
+    expect(created[0].name).toBe("张三");
+    expect(created[0].referrerId).toBeUndefined();
+    expect(created[1].name).toBe("李四");
+    expect(created[1].referrerId).toBeUndefined();
   });
 });
