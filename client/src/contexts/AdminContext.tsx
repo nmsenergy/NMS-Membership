@@ -3,15 +3,18 @@ import React, { createContext, useContext, useState, ReactNode } from "react";
 interface AdminContextType {
   showAdminView: boolean;
   setShowAdminView: (value: boolean) => void;
+  currentAdminPage: string;
+  setCurrentAdminPage: (page: string) => void;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export function AdminProvider({ children }: { children: ReactNode }) {
   const [showAdminView, setShowAdminView] = useState(false);
+  const [currentAdminPage, setCurrentAdminPage] = useState("dashboard");
 
   return (
-    <AdminContext.Provider value={{ showAdminView, setShowAdminView }}>
+    <AdminContext.Provider value={{ showAdminView, setShowAdminView, currentAdminPage, setCurrentAdminPage }}>
       {children}
     </AdminContext.Provider>
   );

@@ -26,51 +26,15 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminTopups from "./pages/admin/AdminTopups";
 import AdminCalculationBase from "./pages/admin/AdminCalculationBase";
 import AdminImport from "./pages/admin/AdminImport";
-import { useState } from "react";
 
 // Member view component
 function MemberView() {
-  const [currentPage, setCurrentPage] = useState("home");
-
-  const renderPage = () => {
-    switch (currentPage) {
-      case "home":
-        return <Home />;
-      case "register":
-        return <Register />;
-      case "profile":
-        return <Profile />;
-      case "orders":
-        return <Orders />;
-      case "team":
-        return <Team />;
-      case "vip-zone":
-        return <VipZone />;
-      case "agent-zone":
-        return <AgentZone />;
-      case "topup":
-        return <TopUp />;
-      case "withdraw":
-        return <Withdraw />;
-      case "upgrade":
-        return <Upgrade />;
-      case "extra-rewards":
-        return <ExtraRewards />;
-      case "announcements":
-        return <Announcements />;
-      case "notifications":
-        return <Notifications />;
-      default:
-        return <Home />;
-    }
-  };
-
-  return renderPage();
+  return <Home />;
 }
 
 // Admin view component
 function AdminView() {
-  const [currentAdminPage, setCurrentAdminPage] = useState("dashboard");
+  const { currentAdminPage } = useAdminView();
 
   const renderAdminPage = () => {
     switch (currentAdminPage) {

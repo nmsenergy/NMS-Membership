@@ -10,7 +10,7 @@ import { toast } from "sonner";
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
-  const { setShowAdminView } = useAdminView();
+  const { setShowAdminView, setCurrentAdminPage } = useAdminView();
   const { data: stats } = trpc.admin.stats.useQuery();
 
   if (!user || ((user as any).role !== "admin" && (user as any).role !== "regional_manager")) {
@@ -76,8 +76,9 @@ export default function AdminDashboard() {
         <Card className="rounded-xl border-0 overflow-hidden">
           {menuItems.map((item, i) => {
             const Icon = item.icon;
+            const pageName = item.path.replace('/admin/', '');
             return (
-              <button key={item.path} onClick={() => setShowAdminView(true)} className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-accent/50 transition-colors ${i < menuItems.length - 1 ? "border-b border-border/50" : ""}`}>
+              <button key={item.path} onClick={() => setCurrentAdminPage(pageName)} className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-accent/50 transition-colors ${i < menuItems.length - 1 ? "border-b border-border/50" : ""}`}>
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${item.color}`}>
                   <Icon size={18} />
                 </div>
