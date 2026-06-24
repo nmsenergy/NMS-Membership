@@ -19,6 +19,7 @@ import {
   rewardVisibility,
   loginHistory,
   regionalManagerConfig,
+  shippingLocations,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { nanoid } from "nanoid";
@@ -925,4 +926,44 @@ export async function getOrdersForRegionalManager(
     .from(orders)
     .where(and(...conditions))
     .orderBy(desc(orders.createdAt));
+}
+
+
+// ─── Shipping Locations ───────────────────────────────────────────────────────
+export async function getAllShippingLocations() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(shippingLocations).orderBy(shippingLocations.displayOrder);
+}
+
+export async function getShippingLocationByCode(code: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(shippingLocations).where(eq(shippingLocations.code, code));
+  return result[0] || null;
+}
+
+export async function createShippingLocation(data: { code: string; name: string; description?: string; displayOrder?: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(shippingLocations).values({
+    code: data.code,
+    name: data.name,
+    description: data.description,
+    displayOrder: data.displayOrder || 0,
+    isActive: true,
+  });
+  return result;
+}
+
+export async function updateShippingLocation(id: number, data: { name?: string; description?: string; displayOrder?: number; isActive?: boolean }) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.update(shippingLocations).set(data).where(eq(shippingLocations.id, id));
+}
+
+export async function deleteShippingLocation(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.delete(shippingLocations).where(eq(shippingLocations.id, id));
 }

@@ -408,3 +408,18 @@ export const regionalManagerConfig = mysqlTable("regional_manager_config", {
 
 export type RegionalManagerConfig = typeof regionalManagerConfig.$inferSelect;
 export type InsertRegionalManagerConfig = typeof regionalManagerConfig.$inferInsert;
+
+// ─── Shipping Locations ───────────────────────────────────────────────────────
+export const shippingLocations = mysqlTable("shipping_locations", {
+  id: int("id").primaryKey().autoincrement(),
+  code: varchar("code", { length: 50 }).notNull().unique(), // e.g., "KK_STOCKIST", "PUCHONG_HQ"
+  name: varchar("name", { length: 100 }).notNull(), // Display name, e.g., "KK Stockist", "Puchong HQ"
+  description: text("description"), // Optional description
+  isActive: boolean("isActive").default(true).notNull(),
+  displayOrder: int("displayOrder").default(0).notNull(), // For sorting in UI
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ShippingLocation = typeof shippingLocations.$inferSelect;
+export type InsertShippingLocation = typeof shippingLocations.$inferInsert;

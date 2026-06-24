@@ -264,6 +264,136 @@ export default function AdminSettings() {
           {updateSettings.isPending ? "保存中..." : "保存系统参数"}
         </Button>
       </div>
+      
+      {/* Shipping Locations Management */}
+      <ShippingLocationsPanel />
     </div>
+  );
+}
+
+function ShippingLocationsPanel() {
+  const { data: locations, refetch } = trpc.admin.shippingLocations.useQuery();
+  const [newLocation, setNewLocation] = useState({ code: "", name: "", description: "" });
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", description: "", displayOrder: 0 });
+
+  const createMutation = trpc.admin.createShippingLocation.useMutation({
+    onSuccess: () => {
+      toast.success("出貨地點已創建");
+      setNewLocation({ code: "", name: "", description: "" });
+      refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const updateMutation = trpc.admin.updateShippingLocation.useMutation({
+    onSuccess: () => {
+      toast.success("出貨地點已更新");
+      setEditingId(null);
+      refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const deleteMutation = trpc.admin.deleteShippingLocation.useMutation({
+    onSuccess: () => {
+      toast.success("出貨地點已刪除");
+      refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  return (
+    <Card className="p-4">
+      <h3 className="font-semibold mb-4">出貨地點管理</h3>
+      
+      {/* Add New Location */}
+      <div className="space-y-2 mb-4 p-3 bg-muted rounded">
+        <h4 className="text-sm font-medium">新增出貨地點</h4>
+        <Input
+          placeholder="代碼 (如: KK_STOCKIST)"
+          value={newLocation.code}
+          onChange={(e) => setNewLocation({ ...newLocation, code: e.target.value })}
+        />
+        <Input
+          placeholder="名稱 (如: KK Stockist)"
+          value={newLocation.name}
+          onChange={(e) => setNewLocation({ ...newLocation, name: e.target.value })}
+        />
+        <Input
+          placeholder="描述 (選填)"
+          value={newLocation.description}
+          onChange={(e) => setNewLocation({ ...newLocation, description: e.target.value })}
+        />
+        <Button
+          className="w-full"
+          onClick={() => createMutation.mutate(newLocation)}
+          disabled={!newLocation.code || !newLocation.name || createMutation.isPending}
+        >
+          {createMutation.isPending ? "新增中..." : "新增"}
+        </Button>
+      </div>
+
+      {/* Locations List */}
+      <div className="space-y-2">
+        {locations?.map((loc) => (
+          <div key={loc.id} className="p-3 border rounded flex items-center justify-between">
+            {editingId === loc.id ? (
+              <div className="flex-1 space-y-2 mr-2">
+                <Input
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  placeholder="名稱"
+                />
+                <Input
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  placeholder="描述"
+                />
+              </div>
+            ) : (
+              <div>
+                <p className="font-medium">{loc.name}</p>
+                <p className="text-xs text-muted-foreground">{loc.code}</p>
+                {loc.description && <p className="text-xs">{loc.description}</p>}
+              </div>
+            )}
+            <div className="flex gap-2">
+              {editingId === loc.id ? (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={() => updateMutation.mutate({ id: loc.id, ...editForm })}
+                    disabled={updateMutation.isPending}
+                  >
+                    保存
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>
+                    取消
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    setEditingId(loc.id);
+                    setEditForm({ name: loc.name, description: loc.description || "", displayOrder: loc.displayOrder });
+                  }}>
+                    編輯
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => deleteMutation.mutate({ id: loc.id })}
+                    disabled={deleteMutation.isPending}
+                  >
+                    刪除
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }

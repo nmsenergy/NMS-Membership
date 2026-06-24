@@ -315,3 +315,11 @@
 - [x] Test CSV export with sample data
 - [x] Test CSV import with validation
 - [x] Verify build success with all changes
+
+
+## Shipping Locations Dynamic Management (Completed)
+- [x] Add shipping_locations table to database schema (id, code, name, description, isActive, displayOrder)
+- [x] Implement CRUD API procedures for shipping locations (4 procedures)
+- [x] Add shipping locations management UI to AdminSettings (ShippingLocationsPanel component)
+- [x] Support create, edit, delete operations for shipping locations
+- [x] Verify build success with all changes

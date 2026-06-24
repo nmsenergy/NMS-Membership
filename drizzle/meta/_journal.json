@@ -15,6 +15,13 @@
       "when": 1782294496730,
       "tag": "0001_aberrant_tombstone",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1782297262949,
+      "tag": "0002_striped_redwing",
+      "breakpoints": true
     }
   ]
 }

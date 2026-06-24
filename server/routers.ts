@@ -66,6 +66,10 @@ import {
   upsertProduct,
   upsertUser,
   getDb,
+  getAllShippingLocations,
+  createShippingLocation,
+  updateShippingLocation,
+  deleteShippingLocation,
 } from "./db";
 import {
   upgradeConditions,
@@ -2140,6 +2144,44 @@ const adminRouter = router({
       }
       
       return { created, updated, errors };
+    }),
+
+  // Shipping Locations Management
+  shippingLocations: adminProcedure.query(async () => {
+    return getAllShippingLocations();
+  }),
+
+  createShippingLocation: adminProcedure
+    .input(z.object({
+      code: z.string().min(1),
+      name: z.string().min(1),
+      description: z.string().optional(),
+      displayOrder: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      await createShippingLocation(input);
+      return { success: true };
+    }),
+
+  updateShippingLocation: adminProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().optional(),
+      description: z.string().optional(),
+      displayOrder: z.number().optional(),
+      isActive: z.boolean().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      await updateShippingLocation(id, data);
+      return { success: true };
+    }),
+
+  deleteShippingLocation: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await deleteShippingLocation(input.id);
+      return { success: true };
     }),
 
 });
