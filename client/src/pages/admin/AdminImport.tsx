@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -26,10 +27,18 @@ export default function AdminImport() {
   const [importResult, setImportResult] = useState<{ created: number; failed: Array<{ row: ImportRow; reason: string }>; total: number } | null>(null);
   const [editingRowIndex, setEditingRowIndex] = useState<number | null>(null);
   const [editingData, setEditingData] = useState<ImportRow | null>(null);
+  const [memberList, setMemberList] = useState<Array<{ id: number; name: string; referralCode: string; rank: string }>>([]);
 
   const downloadTemplateMutation = trpc.admin.downloadTemplate.useMutation();
+  const memberListQuery = trpc.admin.memberList.useQuery();
   const validateImportMutation = trpc.admin.validateImport.useMutation();
   const importMembersMutation = trpc.admin.importMembers.useMutation();
+
+  useEffect(() => {
+    if (memberListQuery.data) {
+      setMemberList(memberListQuery.data);
+    }
+  }, [memberListQuery.data]);
 
   const handleDownloadTemplate = async () => {
     try {
@@ -295,7 +304,20 @@ export default function AdminImport() {
                         <td className="p-2"><input type="text" value={editingData.州属 || ''} onChange={(e) => handleEditFieldChange('州属', e.target.value)} className="w-full px-2 py-1 border rounded text-sm" /></td>
                         <td className="p-2"><input type="text" value={editingData.邮区编号 || ''} onChange={(e) => handleEditFieldChange('邮区编号', e.target.value)} className="w-full px-2 py-1 border rounded text-sm" /></td>
                         <td className="p-2"><input type="text" value={editingData.城市 || ''} onChange={(e) => handleEditFieldChange('城市', e.target.value)} className="w-full px-2 py-1 border rounded text-sm" /></td>
-                        <td className="p-2"><input type="text" value={editingData.推荐人} onChange={(e) => handleEditFieldChange('推荐人', e.target.value)} className="w-full px-2 py-1 border rounded text-sm" /></td>
+                        <td className="p-2">
+                          <select 
+                            value={editingData.推荐人} 
+                            onChange={(e) => handleEditFieldChange('推荐人', e.target.value)} 
+                            className="w-full px-2 py-1 border rounded text-sm"
+                          >
+                            <option value="">-- 选择推荐人 --</option>
+                            {memberList.map((member) => (
+                              <option key={member.id} value={member.name}>
+                                {member.name} ({member.rank})
+                              </option>
+                            ))}
+                          </select>
+                        </td>
                         <td className="p-2 flex gap-1">
                           <Button size="sm" variant="default" onClick={handleSaveEdit} className="text-xs">保存</Button>
                           <Button size="sm" variant="outline" onClick={handleCancelEdit} className="text-xs">取消</Button>

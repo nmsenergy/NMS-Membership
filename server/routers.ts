@@ -1021,6 +1021,17 @@ const adminRouter = router({
     return { totalMembers: allMembers.length, pendingOrders, monthlyRevenue };
   }),
 
+  // Get all members for dropdown/autocomplete
+  memberList: adminProcedure.query(async () => {
+    const all = await getAllMembers();
+    return all.map(({ member, user }) => ({
+      id: member.id,
+      name: user?.name ?? member.referralCode,
+      referralCode: member.referralCode,
+      rank: member.rank,
+    }));
+  }),
+
   // Members with pagination and search
   members: adminProcedure
     .input(z.object({ search: z.string().optional(), rank: z.string().optional(), page: z.number().default(1), limit: z.number().default(20) }))
