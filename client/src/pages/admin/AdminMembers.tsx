@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { useAdminView } from "@/contexts/AdminContext";
 
 export default function AdminMembers() {
-  const { setShowAdminView } = useAdminView();
+  const { setCurrentAdminPage } = useAdminView();
   const [search, setSearch] = useState("");
   const [rankFilter, setRankFilter] = useState("ALL");
   const [editMember, setEditMember] = useState<any>(null);
@@ -65,7 +65,7 @@ export default function AdminMembers() {
     <div className="mobile-app pb-8">
       <MobileHeader 
         title="会员管理" 
-        onBack={() => setShowAdminView(true)}
+        onBack={() => setCurrentAdminPage("dashboard")}
         rightElement={
         <button onClick={() => exportExcel.mutate({})} className="text-primary">
           <Download size={20} />

@@ -1,6 +1,6 @@
 import { ChevronLeft } from "lucide-react";
-import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { useAdminView } from "@/contexts/AdminContext";
 
 interface MobileHeaderProps {
   title: string;
@@ -19,14 +19,16 @@ export default function MobileHeader({
   className,
   transparent = false,
 }: MobileHeaderProps) {
-  const [, navigate] = useLocation();
+  const { showAdminView, setCurrentAdminPage } = useAdminView();
 
   const handleBack = () => {
     if (onBack) {
       onBack();
-    } else {
-      navigate("/");
+    } else if (showAdminView) {
+      // In admin view, go back to admin dashboard
+      setCurrentAdminPage("dashboard");
     }
+    // If not in admin view and no onBack, do nothing (avoid navigate which triggers unload)
   };
 
   return (
