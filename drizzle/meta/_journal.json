@@ -29,6 +29,13 @@
       "when": 1782298930709,
       "tag": "0003_windy_mister_sinister",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1782300561532,
+      "tag": "0004_striped_marten_broadcloak",
+      "breakpoints": true
     }
   ]
 }

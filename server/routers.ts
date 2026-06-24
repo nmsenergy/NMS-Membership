@@ -82,6 +82,7 @@ import {
   productCalculationBase,
   orderItems,
   users,
+  members,
   vipPaymentCodes,
   featureVisibility,
   loginHistory,
@@ -1610,36 +1611,49 @@ const adminRouter = router({
       const rows = [];
       for (let i = 1; i < lines.length; i++) {
         const parts = lines[i].split(',').map(p => p.trim());
-        if (parts.length < 2) continue;
+        if (parts.length < 3) continue; // Name, Email, Referrer are minimum
         rows.push({
           name: parts[0],
-          openId: parts[1],
-          referralCode: parts[2],
-          phone: parts[3],
-          birthday: parts[4],
-          rank: 'VIP',
+          email: parts[1],
+          country: parts[2] || undefined,
+          state: parts[3] || undefined,
+          postalCode: parts[4] || undefined,
+          city: parts[5] || undefined,
+          referrerName: parts[6],
         });
       }
       let created = 0;
       for (const row of rows) {
         try {
-          await upsertUser({ openId: row.openId, name: row.name });
-          const user = await getUserByOpenId(row.openId);
+          // Generate openId from email
+          const openId = `email_${row.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+          await upsertUser({ openId, name: row.name, email: row.email });
+          const user = await getUserByOpenId(openId);
           if (!user) continue;
           const existing = await getMemberByUserId(user.id);
           if (existing) continue;
+          
+          // Find referrer by name
           let referrerId;
-          if (row.referralCode) {
-            const ref = await getMemberByReferralCode(row.referralCode);
-            if (ref) referrerId = ref.id;
+          if (row.referrerName) {
+            const db = await getDb();
+            if (db) {
+              const referrerResult = await db.select().from(members).innerJoin(users, eq(members.userId, users.id)).where(eq(users.name, row.referrerName)).limit(1);
+              if (referrerResult.length > 0) {
+                referrerId = referrerResult[0].members.id;
+              }
+            }
           }
+          
           await createMember({
             userId: user.id,
             referralCode: generateReferralCode(),
             referrerId,
             rank: 'VIP',
-            phone: row.phone,
-            birthday: row.birthday,
+            country: row.country,
+            state: row.state,
+            postalCode: row.postalCode,
+            city: row.city,
             gubenBalance: 0,
             bonusBalance: '0.00',
             vipPackagesBought: 0,
@@ -1658,30 +1672,35 @@ const adminRouter = router({
   downloadTemplate: adminProcedure.mutation(async () => {
     const XLSX = await import("xlsx");
     const templateData = [
-      { openId: "user_001", name: "张三", phone: "60123456789", birthday: "1990-01-15", referralCode: "推荐人码", rank: "VIP" },
-      { openId: "user_002", name: "李四", phone: "60187654321", birthday: "1995-06-20", referralCode: "推荐人码", rank: "VIP" },
+      { 姓名: "张三", 电邮地址: "zhang@example.com", 国家: "马来西亚", 州属: "吉隆坡", 邮区编号: "50000", 城市: "吉隆坡", 推荐人: "李四" },
+      { 姓名: "李四", 电邮地址: "li@example.com", 国家: "马来西亚", 州属: "雪兰莪", 邮区编号: "40000", 城市: "莎阿南", 推荐人: "" },
     ];
     const ws = XLSX.utils.json_to_sheet(templateData);
-    ws["!cols"] = [{ wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 10 }];
+    ws["!cols"] = [{ wch: 15 }, { wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 15 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Members");
     const instructionData = [
       ["会员批量导入操作说明"],
       [""],
+      ["必填栏位：姓名、电邮地址、推荐人"],
+      ["可选栏位：国家、州属、邮区编号、城市"],
+      [""],
       ["字段说明:"],
-      ["openId", "用户唯一标识，必填，不能重复"],
-      ["name", "会员姓名，必填"],
-      ["phone", "手机号码，选填"],
-      ["birthday", "生日日期，格式YYYY-MM-DD，选填"],
-      ["referralCode", "推荐人的推荐码，选填"],
-      ["rank", "会员等级，必填，可选值：VIP, M-AGENT, SM, GM, CEO"],
+      ["姓名", "会员姓名，必填"],
+      ["电邮地址", "电子邮件地址，必填，用于创建用户账户"],
+      ["国家", "国家名称，选填"],
+      ["州属", "州或省份，选填"],
+      ["邮区编号", "邮政编码，选填"],
+      ["城市", "城市名称，选填"],
+      ["推荐人", "推荐人的姓名，必填，系统会根据姓名查找对应的会员"],
       [""],
       ["注意事项:"],
-      ["1. openId必须唯一，系统会检查重复"],
-      ["2. 如果openId已存在，该行会被跳过"],
-      ["3. referralCode必须是有效的推荐码"],
-      ["4. 每行最多处理一条记录"],
-      ["5. 导入过程中出错的行会被记录"],
+      ["1. 电邮地址必须唯一，系统会检查重复"],
+      ["2. 如果电邮地址已存在，该行会被跳过"],
+      ["3. 推荐人必须是有效的会员姓名"],
+      ["4. 如果推荐人不存在，该会员将作为根节点创建"],
+      ["5. 每行最多处理一条记录"],
+      ["6. 导入过程中出错的行会被记录"],
     ];
     const instructionWs = XLSX.utils.aoa_to_sheet(instructionData);
     XLSX.utils.book_append_sheet(wb, instructionWs, "说明");
@@ -1696,29 +1715,25 @@ const adminRouter = router({
       z.object({
         data: z.array(
           z.object({
-            openId: z.string(),
-            name: z.string(),
-            phone: z.string().optional(),
-            birthday: z.string().optional(),
-            referralCode: z.string().optional(),
-            rank: z.string().optional(),
+            "姓名": z.string(),
+            "电邮地址": z.string(),
+            "国家": z.string().optional(),
+            "州属": z.string().optional(),
+            "邮区编号": z.string().optional(),
+            "城市": z.string().optional(),
+            "推荐人": z.string(),
           })
         ),
       })
     )
     .mutation(async ({ input }) => {
       const errors: Array<{ row: number; error: string }> = [];
-      const validRanks = ["VIP", "M-AGENT", "SM", "GM", "CEO"];
       for (let i = 0; i < input.data.length; i++) {
         const row = input.data[i];
-        if (!row.openId?.trim()) errors.push({ row: i + 1, error: "openId不能为空" });
-        if (!row.name?.trim()) errors.push({ row: i + 1, error: "name不能为空" });
-        if (row.rank && !validRanks.includes(row.rank)) errors.push({ row: i + 1, error: "rank无效" });
-        if (row.birthday && !/^\d{4}-\d{2}-\d{2}$/.test(row.birthday)) errors.push({ row: i + 1, error: "birthday格式错误" });
-        if (row.referralCode) {
-          const ref = await getMemberByReferralCode(row.referralCode);
-          if (!ref) errors.push({ row: i + 1, error: "referralCode无效" });
-        }
+        if (!row["姓名"]?.trim()) errors.push({ row: i + 1, error: "姓名不能为空" });
+        if (!row["电邮地址"]?.trim()) errors.push({ row: i + 1, error: "电邮地址不能为空" });
+        if (!row["推荐人"]?.trim()) errors.push({ row: i + 1, error: "推荐人不能为空" });
+        if (row["电邮地址"] && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row["电邮地址"])) errors.push({ row: i + 1, error: "电邮地址格式错误" });
       }
       return { valid: errors.length === 0, errors, totalRows: input.data.length };
     }),

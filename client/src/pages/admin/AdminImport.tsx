@@ -7,12 +7,13 @@ import { AlertCircle, Download, Upload, CheckCircle, XCircle, Loader2 } from "lu
 import { toast } from "sonner";
 
 interface ImportRow {
-  openId: string;
-  name: string;
-  phone?: string;
-  birthday?: string;
-  referralCode?: string;
-  rank?: "VIP" | "M_AGENT" | "SM" | "GM" | "CEO";
+  姓名: string;
+  电邮地址: string;
+  国家?: string;
+  州属?: string;
+  邮区编号?: string;
+  城市?: string;
+  推荐人: string;
 }
 
 export default function AdminImport() {
@@ -101,14 +102,16 @@ export default function AdminImport() {
     setImportStep("importing");
     try {
       // Convert ImportRow[] to CSV string format
-      const csvLines = ["Name,OpenId,ReferralCode,Phone,Birthday"];
+      const csvLines = ["姓名,电邮地址,国家,州属,邮区编号,城市,推荐人"];
       importData.forEach(row => {
         const line = [
-          row.name,
-          row.openId,
-          row.referralCode || "",
-          row.phone || "",
-          row.birthday || "",
+          row.姓名,
+          row.电邮地址,
+          row.国家 || "",
+          row.州属 || "",
+          row.邮区编号 || "",
+          row.城市 || "",
+          row.推荐人,
         ].join(",");
         csvLines.push(line);
       });
@@ -228,23 +231,25 @@ export default function AdminImport() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="text-left p-2">openId</th>
                   <th className="text-left p-2">姓名</th>
-                  <th className="text-left p-2">手机</th>
-                  <th className="text-left p-2">生日</th>
-                  <th className="text-left p-2">推荐码</th>
-                  <th className="text-left p-2">等级</th>
+                  <th className="text-left p-2">电邮地址</th>
+                  <th className="text-left p-2">国家</th>
+                  <th className="text-left p-2">州属</th>
+                  <th className="text-left p-2">邮区编号</th>
+                  <th className="text-left p-2">城市</th>
+                  <th className="text-left p-2">推荐人</th>
                 </tr>
               </thead>
               <tbody>
                 {importData.slice(0, 10).map((row, i) => (
                   <tr key={i} className="border-b hover:bg-muted/30">
-                    <td className="p-2 text-xs font-mono">{row.openId}</td>
-                    <td className="p-2">{row.name}</td>
-                    <td className="p-2">{row.phone || "-"}</td>
-                    <td className="p-2">{row.birthday || "-"}</td>
-                    <td className="p-2 text-xs">{row.referralCode || "-"}</td>
-                    <td className="p-2">{row.rank || "VIP"}</td>
+                    <td className="p-2">{row.姓名}</td>
+                    <td className="p-2 text-xs font-mono">{row.电邮地址}</td>
+                    <td className="p-2">{row.国家 || "-"}</td>
+                    <td className="p-2">{row.州属 || "-"}</td>
+                    <td className="p-2">{row.邮区编号 || "-"}</td>
+                    <td className="p-2">{row.城市 || "-"}</td>
+                    <td className="p-2">{row.推荐人}</td>
                   </tr>
                 ))}
               </tbody>
