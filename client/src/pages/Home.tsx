@@ -20,16 +20,8 @@ export default function Home() {
   const [, navigate] = useLocation();
   const { data: authData, isLoading: authMeLoading } = trpc.auth.me.useQuery();
   const member = (authData as any)?.member;
-  const ownMember = (authData as any)?.ownMember;
-  const isSwitched = !!(authData as any)?.isSwitched;
   const { data: announcements } = trpc.announcement.list.useQuery();
   const { isVisible } = useFeatureVisibility();
-  const switchAccount = trpc.member.switchAccount.useMutation({
-    onSuccess: () => {
-      toast.success("已切换回自己的账户");
-      window.location.reload();
-    },
-  });
 
   // Auto-redirect admin to admin dashboard
   useEffect(() => {
@@ -125,25 +117,6 @@ export default function Home() {
 
   return (
     <div className="mobile-app pb-20">
-      {/* Switched-account banner */}
-      {isSwitched && ownMember && (
-        <div className="bg-amber-500 text-white px-4 py-2 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-1.5">
-            <ArrowUpRight size={13} className="rotate-90" />
-            <span>
-              正在查看：<strong>{member?.referralCode}</strong>（{member?.rank}）
-            </span>
-          </div>
-          <button
-            onClick={() => switchAccount.mutate({ targetMemberId: null })}
-            disabled={switchAccount.isPending}
-            className="bg-white/20 hover:bg-white/30 rounded px-2 py-0.5 font-medium transition-colors"
-          >
-            {switchAccount.isPending ? "..." : "返回自己"}
-          </button>
-        </div>
-      )}
-
       {/* Header */}
       <div className="gradient-header px-5 pt-12 pb-20 text-white">
         <div className="flex items-center justify-between mb-4">

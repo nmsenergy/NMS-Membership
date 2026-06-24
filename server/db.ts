@@ -17,6 +17,7 @@ import {
   vipPaymentCodes,
   withdrawals,
   rewardVisibility,
+  loginHistory,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { nanoid } from "nanoid";

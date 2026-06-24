@@ -71,8 +71,9 @@ import {
   users,
   vipPaymentCodes,
   featureVisibility as featureVisibilityTable,
+  loginHistory,
 } from "../drizzle/schema";
-import { eq, gte, lte, and } from "drizzle-orm";
+import { eq, gte, lte, and, desc } from "drizzle-orm";
 import { getUserByOpenId, getUserById } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { storagePut, storageDelete } from "./storage";
@@ -115,8 +116,8 @@ const authRouter = router({
     if (!user) return null;
     // Return effectiveMember so all member-facing pages reflect the switched account.
     // ownMember is included so the frontend can detect a switch is active.
-    const member = opts.ctx.effectiveMember;
-    const ownMember = opts.ctx.ownMember;
+    const member = opts.ctx.member;
+    const ownMember = opts.ctx.member;
     const isSwitched = !!ownMember && !!member && ownMember.id !== member.id;
     return { ...user, member, ownMember, isSwitched };
   }),
@@ -131,7 +132,7 @@ const authRouter = router({
 
 const memberRouter = router({
   profile: protectedProcedure.query(async ({ ctx }) => {
-    const member = ctx.effectiveMember;
+    const member = ctx.member;
     if (!member) return null;
     const referrer = member.referrerId ? await getMemberById(member.referrerId) : null;
     return { ...member, referrer };
@@ -206,7 +207,7 @@ const memberRouter = router({
     }),
 
   team: protectedProcedure.query(async ({ ctx }) => {
-    const member = ctx.effectiveMember;
+    const member = ctx.member;
     if (!member) return { direct: [], total: [] };
     const direct = await getDirectReferrals(member.id);
     const total = await getTeamTree(member.id);
@@ -214,7 +215,7 @@ const memberRouter = router({
   }),
 
   rewardVisibility: protectedProcedure.query(async ({ ctx }) => {
-    const member = ctx.effectiveMember;
+    const member = ctx.member;
     if (!member) return { showCarAllowance: true, showTravelReward: true };
     return getRewardVisibility(member.id);
   }),
@@ -222,48 +223,47 @@ const memberRouter = router({
   setRewardVisibility: protectedProcedure
     .input(z.object({ showCarAllowance: z.boolean().optional(), showTravelReward: z.boolean().optional() }))
     .mutation(async ({ ctx, input }) => {
-      const member = ctx.effectiveMember;
+      const member = ctx.member;
       if (!member) throw new TRPCError({ code: "NOT_FOUND" });
       await setRewardVisibility(member.id, input);
       return { success: true };
     }),
 
-  switchAccount: protectedProcedure
-    .input(z.object({ targetMemberId: z.number().nullable() }))
+  getLoginHistory: protectedProcedure.query(async ({ ctx }) => {
+    if (!ctx.user) return [];
+    return [];
+  }),
+
+  getTeamMembers: protectedProcedure.query(async ({ ctx }) => {
+    const member = ctx.member;
+    if (!member) return [];
+    const team = await getTeamTree(member.id);
+    return team.map((m) => ({
+      id: m.id,
+      referralCode: m.referralCode,
+      rank: m.rank,
+      phone: m.phone,
+      gubenBalance: m.gubenBalance,
+      bonusBalance: m.bonusBalance,
+    }));
+  }),
+
+  deleteLoginHistory: protectedProcedure
+    .input(z.object({ memberId: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      const member = await getMemberByUserId(ctx.user.id);
-      if (!member) throw new TRPCError({ code: "NOT_FOUND" });
-      if (input.targetMemberId !== null) {
-        // Verify target is in downline
-        const team = await getTeamTree(member.id);
-        const isInTeam = team.some((m) => m.id === input.targetMemberId);
-        if (!isInTeam && ctx.user.role !== "admin") {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Target not in your team" });
-        }
-      }
-      await updateMember(member.id, { switchedToMemberId: input.targetMemberId ?? undefined });
+      if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      await db.delete(loginHistory).where(
+        and(eq(loginHistory.userId, ctx.user.id), eq(loginHistory.memberId, input.memberId))
+      );
       return { success: true };
     }),
-
-  getSwitchableAccounts: protectedProcedure.query(async ({ ctx }) => {
-    const member = await getMemberByUserId(ctx.user.id);
-    if (!member) return { current: null, switchedTo: null, team: [] };
-    const team = await getTeamTree(member.id);
-    let switchedTo = null;
-    if (member.switchedToMemberId) {
-      switchedTo = await getMemberById(member.switchedToMemberId);
-    }
-    return {
-      current: member,
-      switchedTo,
-      team: team.map((m) => ({ id: m.id, referralCode: m.referralCode, rank: m.rank, phone: m.phone })),
-    };
-  }),
 
   yearEndDividend: protectedProcedure
     .input(z.object({ year: z.number().default(new Date().getFullYear()) }))
     .query(async ({ ctx, input }) => {
-      const member = ctx.effectiveMember;
+      const member = ctx.member;
       if (!member) return null;
       const annualIncome = await getAnnualIncome(member.id, input.year);
       let rate = 0;
@@ -275,7 +275,7 @@ const memberRouter = router({
     }),
 
   carAllowanceStatus: protectedProcedure.query(async ({ ctx }) => {
-    const member = ctx.effectiveMember;
+    const member = ctx.member;
     if (!member || !isAgentOrAbove(member.rank)) return null;
     const now = new Date();
     const performance = await getMonthlyTeamPerformance(member.id, now.getFullYear(), now.getMonth() + 1);
@@ -286,7 +286,7 @@ const memberRouter = router({
   }),
 
   travelRewardStatus: protectedProcedure.query(async ({ ctx }) => {
-    const member = ctx.effectiveMember;
+    const member = ctx.member;
     if (!member) return null;
     const option1 = member.directVipReferrals >= 12;
     const option2 = member.directVipReferrals >= 15;
@@ -320,7 +320,7 @@ const productRouter = router({
   list: protectedProcedure
     .input(z.object({ zone: z.enum(["VIP", "AGENT", "BOTH"]).optional() }))
     .query(async ({ ctx, input }) => {
-      const member = ctx.effectiveMember;
+      const member = ctx.member;
       const rank = member?.rank ?? "VIP";
       // Agent zone only for M_AGENT+
       if (input.zone === "AGENT" && !isAgentOrAbove(rank) && ctx.user.role !== "admin") {
@@ -336,7 +336,7 @@ const productRouter = router({
     }),
 
   birthdayProducts: protectedProcedure.query(async ({ ctx }) => {
-    const member = ctx.effectiveMember;
+    const member = ctx.member;
     if (!member) return [];
     if (!member.birthdayVerified) return [];
     const now = new Date();
@@ -352,13 +352,13 @@ const productRouter = router({
 
 const orderRouter = router({
   myOrders: protectedProcedure.query(async ({ ctx }) => {
-    const member = ctx.effectiveMember;
+    const member = ctx.member;
     if (!member) return [];
     return getOrdersWithItems(member.id);
   }),
 
   myCodes: protectedProcedure.query(async ({ ctx }) => {
-    const member = ctx.effectiveMember;
+    const member = ctx.member;
     if (!member) return [];
     return getVipCodesByMember(member.id);
   }),
@@ -374,7 +374,7 @@ const orderRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const member = ctx.effectiveMember;
+      const member = ctx.member;
       if (!member) throw new TRPCError({ code: "NOT_FOUND" });
       if (!isAgentOrAbove(member.rank)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Agent rank required" });
@@ -428,7 +428,7 @@ const orderRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const member = ctx.effectiveMember;
+      const member = ctx.member;
       if (!member) throw new TRPCError({ code: "NOT_FOUND" });
 
       const vipCode = await getVipCodeByCode(input.paymentCode);
@@ -507,7 +507,7 @@ const orderRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const member = ctx.effectiveMember;
+      const member = ctx.member;
       if (!member) throw new TRPCError({ code: "NOT_FOUND" });
       if (!member.birthdayVerified) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Birthday not verified" });
@@ -583,7 +583,7 @@ const orderRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const member = ctx.effectiveMember;
+      const member = ctx.member;
       if (!member) throw new TRPCError({ code: "NOT_FOUND" });
 
       let totalGuben = 0;
@@ -649,7 +649,7 @@ const bonusRouter = router({
   gubenLedger: protectedProcedure
     .input(z.object({ from: z.date().optional(), to: z.date().optional() }))
     .query(async ({ ctx, input }) => {
-      const member = ctx.effectiveMember;
+      const member = ctx.member;
       if (!member) return [];
       return getGubenLedger(member.id, input.from, input.to);
     }),
@@ -657,7 +657,7 @@ const bonusRouter = router({
   bonusLedger: protectedProcedure
     .input(z.object({ from: z.date().optional(), to: z.date().optional() }))
     .query(async ({ ctx, input }) => {
-      const member = ctx.effectiveMember;
+      const member = ctx.member;
       if (!member) return [];
       return getBonusLedger(member.id, input.from, input.to);
     }),
@@ -671,7 +671,7 @@ const bonusRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const member = ctx.effectiveMember;
+      const member = ctx.member;
       if (!member) throw new TRPCError({ code: "NOT_FOUND" });
 
       if (input.type === "BONUS_CONVERT") {
@@ -710,7 +710,7 @@ const bonusRouter = router({
     }),
 
   myTopups: protectedProcedure.query(async ({ ctx }) => {
-    const member = ctx.effectiveMember;
+    const member = ctx.member;
     if (!member) return [];
     return getTopupsByMember(member.id);
   }),
@@ -725,7 +725,7 @@ const bonusRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const member = ctx.effectiveMember;
+      const member = ctx.member;
       if (!member) throw new TRPCError({ code: "NOT_FOUND" });
       if (!isSMOrAbove(member.rank)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "SM rank or above required for withdrawal" });
@@ -745,7 +745,7 @@ const bonusRouter = router({
     }),
 
   myWithdrawals: protectedProcedure.query(async ({ ctx }) => {
-    const member = ctx.effectiveMember;
+    const member = ctx.member;
     if (!member) return [];
     return getWithdrawalsByMember(member.id);
   }),
@@ -1838,12 +1838,12 @@ const notificationRouter = router({
   list: protectedProcedure
     .input(z.object({ limit: z.number().default(20), offset: z.number().default(0) }))
     .query(async ({ ctx, input }) => {
-      const member = ctx.effectiveMember;
+      const member = ctx.member;
       if (!member) throw new TRPCError({ code: "NOT_FOUND" });
       return getMemberNotifications(member.id, input.limit, input.offset);
     }),
   unreadCount: protectedProcedure.query(async ({ ctx }) => {
-    const member = ctx.effectiveMember;
+    const member = ctx.member;
     if (!member) throw new TRPCError({ code: "NOT_FOUND" });
     return getUnreadNotificationCount(member.id);
   }),
@@ -1854,7 +1854,7 @@ const notificationRouter = router({
       return { success: true };
     }),
   markAllAsRead: protectedProcedure.mutation(async ({ ctx }) => {
-    const member = ctx.effectiveMember;
+    const member = ctx.member;
     if (!member) throw new TRPCError({ code: "NOT_FOUND" });
     await markAllNotificationsAsRead(member.id);
     return { success: true };

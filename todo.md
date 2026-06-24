@@ -219,3 +219,13 @@
 - [ ] Add getFeatureVisibility and setFeatureVisibility server procedures
 - [ ] Admin UI: feature visibility management panel in AdminSettings
 - [ ] Member-facing: apply visibility rules to Home quick actions, BottomNav, and feature pages
+
+
+## Account Switching Refactor (Current)
+- [ ] Remove switchedToMemberId from members schema
+- [ ] Revert proxy mode logic in context.ts and routers.ts (restore getMemberByUserId calls)
+- [ ] Create loginHistory table to store previously logged-in accounts
+- [ ] Add procedures: recordLoginHistory, getLoginHistory, deleteLoginHistory
+- [ ] Update SwitchAccount page: show login history + logout-then-login flow
+- [ ] Remove switched-account banner from Home and MobileHeader
+- [ ] Test account switching logout-then-login flow

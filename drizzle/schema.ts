@@ -48,8 +48,7 @@ export const members = mysqlTable("members", {
   vipPackagesBought: int("vipPackagesBought").default(0).notNull(),
   directVipReferrals: int("directVipReferrals").default(0).notNull(),
   directMAgentReferrals: int("directMAgentReferrals").default(0).notNull(),
-  // Account switch target (for agents managing sub-teams)
-  switchedToMemberId: int("switchedToMemberId"),
+
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -361,3 +360,18 @@ export const featureVisibility = mysqlTable("feature_visibility", {
 
 export type FeatureVisibility = typeof featureVisibility.$inferSelect;
 export type InsertFeatureVisibility = typeof featureVisibility.$inferInsert;
+
+// ─── Login History ────────────────────────────────────────────────────────────
+// Track previously logged-in accounts for quick switching
+
+export const loginHistory = mysqlTable("login_history", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(), // FK → users.id (the current logged-in user)
+  memberId: int("memberId").notNull(), // FK → members.id (the account that was logged in)
+  loginCount: int("loginCount").default(1).notNull(), // how many times this member was logged in
+  lastLoginAt: timestamp("lastLoginAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type LoginHistory = typeof loginHistory.$inferSelect;
+export type InsertLoginHistory = typeof loginHistory.$inferInsert;
