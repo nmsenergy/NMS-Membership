@@ -100,6 +100,8 @@ export default function AdminImport() {
     }
 
     setImportStep("importing");
+    const toastId = toast.loading(`正在导入 ${importData.length} 条会员记录...`);
+    
     try {
       // Convert ImportRow[] to CSV string format
       const csvLines = ["姓名,电邮地址,国家,州属,邮区编号,城市,推荐人"];
@@ -116,8 +118,15 @@ export default function AdminImport() {
         csvLines.push(line);
       });
       const csvData = csvLines.join("\n");
+      
+      console.log(`[Import] Starting import of ${importData.length} members`);
       const result = await importMembersMutation.mutateAsync({ csvData });
-      toast.success(`成功导入${result.created}条会员记录`);
+      console.log(`[Import] Success: ${result.created} members imported`);
+      
+      toast.dismiss(toastId);
+      toast.success(`✅ 成功导入 ${result.created} 条会员记录`);
+      
+      // Reset form
       setImportData([]);
       setValidationErrors([]);
       setSelectedFile(null);
@@ -125,8 +134,12 @@ export default function AdminImport() {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
-    } catch (error) {
-      toast.error("导入失败");
+    } catch (error: any) {
+      console.error(`[Import] Error:`, error);
+      toast.dismiss(toastId);
+      
+      const errorMessage = error?.message || "导入失败，请检查数据格式";
+      toast.error(`❌ ${errorMessage}`);
       setImportStep("preview");
     }
   };

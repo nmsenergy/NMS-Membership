@@ -1657,7 +1657,8 @@ const adminRouter = router({
         const email = parts[emailIdx] || '';
         const referrerName = parts[referrerIdx] || '';
         
-        if (!name || !email || !referrerName) continue;
+        // Name and email are required, referrer can be empty (root node)
+        if (!name || !email) continue;
         
         rows.push({
           name,
@@ -1668,6 +1669,14 @@ const adminRouter = router({
           city: cityIdx !== -1 ? (parts[cityIdx] || undefined) : undefined,
           referrerName,
         });
+      }
+      
+      // Pre-load all existing members for fast referrer lookup
+      const db = await getDb();
+      const existingMembers = db ? await db.select().from(members).innerJoin(users, eq(members.userId, users.id)) : [];
+      const referrerMap = new Map<string, number>();
+      for (const record of existingMembers) {
+        referrerMap.set(record.users.name, record.members.id);
       }
       
       let created = 0;
@@ -1681,16 +1690,10 @@ const adminRouter = router({
           const existing = await getMemberByUserId(user.id);
           if (existing) continue;
           
-          // Find referrer by name (case-insensitive)
+          // Find referrer by name from pre-loaded map
           let referrerId;
-          if (row.referrerName) {
-            const db = await getDb();
-            if (db) {
-              const referrerResult = await db.select().from(members).innerJoin(users, eq(members.userId, users.id)).where(eq(users.name, row.referrerName)).limit(1);
-              if (referrerResult.length > 0) {
-                referrerId = referrerResult[0].members.id;
-              }
-            }
+          if (row.referrerName && row.referrerName.trim()) {
+            referrerId = referrerMap.get(row.referrerName);
           }
           
           await createMember({
