@@ -190,3 +190,10 @@
 - [x] Add shipping location column to order Excel export
 - [x] Add top-up/withdrawal Excel export in AdminTopups page
 - [x] Birthday verification workflow: member uploads ID photo, admin can verify and delete photo, notify member after verification
+
+## Product Image Upload (Current)
+- [x] Add imageUrl field to products schema and migrate
+- [x] Add uploadProductImage server procedure (base64 → S3)
+- [x] Update upsertProduct to accept imageUrl
+- [x] Admin product form: image upload + preview
+- [x] Member-facing product pages: display product image

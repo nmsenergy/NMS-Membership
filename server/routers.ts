@@ -1226,6 +1226,28 @@ const adminRouter = router({
     )
     .mutation(({ input }) => upsertProduct(input as any)),
 
+  // Upload product image to S3
+  uploadProductImage: adminProcedure
+    .input(z.object({
+      fileBase64: z.string().min(1),
+      mimeType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]).default("image/jpeg"),
+      productId: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      // Server-side size validation (5 MB limit)
+      const buffer = Buffer.from(input.fileBase64, "base64");
+      if (buffer.length > 5 * 1024 * 1024) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "图片大小不能超过 5MB" });
+      }
+      if (buffer.length === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "图片内容无效" });
+      }
+      const ext = input.mimeType.split("/")[1]?.replace("jpeg", "jpg") || "jpg";
+      const key = `product-images/${input.productId ?? "new"}-${Date.now()}.${ext}`;
+      const { url } = await storagePut(key, buffer, input.mimeType);
+      return { url };
+    }),
+
   // Bonus management
   gubenLedger: adminProcedure
     .input(z.object({ from: z.date().optional(), to: z.date().optional() }))

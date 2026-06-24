@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { formatRM, CATEGORY_LABELS } from "@/lib/utils";
 import MobileHeader from "@/components/MobileHeader";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Edit, Trash2, Settings } from "lucide-react";
+import { Plus, Edit, Trash2, Settings, Upload, X, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 
 const CATEGORIES = ["VIP_PACKAGE", "VIP_BENEFIT_ITEM", "BIRTHDAY_ITEM", "REDEMPTION_ITEM", "AGENT_PACKAGE", "AGENT_ITEM", "ASSESSMENT_ITEM"];
@@ -20,6 +20,9 @@ export default function AdminProducts() {
   const [showZoneConfig, setShowZoneConfig] = useState<any>(null);
   const [form, setForm] = useState({ name: "", description: "", category: "VIP_PACKAGE", price: "", baseValue: "", agentPrice: "", imageUrl: "", isActive: true, zone: "VIP" });
   const [zoneForm, setZoneForm] = useState({ zone: "VIP", gubenBase: "", bonusBase: "", gubenRate: "15" });
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const utils = trpc.useUtils();
 
   const { data: products } = trpc.product.list.useQuery({ zone: "BOTH" });
@@ -52,11 +55,28 @@ export default function AdminProducts() {
     onError: (e) => toast.error(e.message),
   });
 
-  const resetForm = () => setForm({ name: "", description: "", category: "VIP_PACKAGE", price: "", baseValue: "", agentPrice: "", imageUrl: "", isActive: true, zone: "VIP" });
+  const uploadProductImage = trpc.admin.uploadProductImage.useMutation({
+    onSuccess: (data) => {
+      setForm((f) => ({ ...f, imageUrl: data.url }));
+      setImagePreview(data.url);
+      setUploadingImage(false);
+      toast.success("图片已上传");
+    },
+    onError: (e) => {
+      toast.error(e.message);
+      setUploadingImage(false);
+    },
+  });
+
+  const resetForm = () => {
+    setForm({ name: "", description: "", category: "VIP_PACKAGE", price: "", baseValue: "", agentPrice: "", imageUrl: "", isActive: true, zone: "VIP" });
+    setImagePreview(null);
+  };
 
   const openEdit = (p: any) => {
     setEditProduct(p);
     setForm({ name: p.name, description: p.description || "", category: p.category, price: p.price, baseValue: p.baseValue, agentPrice: p.agentPrice || "", imageUrl: p.imageUrl || "", isActive: p.isActive, zone: p.zone });
+    setImagePreview(p.imageUrl || null);
   };
 
   const openZoneConfig = (p: any) => {
@@ -84,6 +104,30 @@ export default function AdminProducts() {
     else createProduct.mutate(data);
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error("图片大小不能超过 5MB"); return; }
+    if (!file.type.startsWith("image/")) { toast.error("请选择图片文件"); return; }
+    setUploadingImage(true);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setImagePreview(dataUrl); // show local preview immediately
+      const base64 = dataUrl.split(",")[1];
+      const allowedMimes = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
+      const mimeType = allowedMimes.includes(file.type as any) ? (file.type as typeof allowedMimes[number]) : "image/jpeg";
+      uploadProductImage.mutate({ fileBase64: base64, mimeType, productId: editProduct?.id });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const clearImage = () => {
+    setForm((f) => ({ ...f, imageUrl: "" }));
+    setImagePreview(null);
+  };
+
   const getZoneLabel = (zone: string) => {
     switch (zone) {
       case "VIP": return "VIP商城";
@@ -101,20 +145,36 @@ export default function AdminProducts() {
       <div className="px-4 mt-3 space-y-2">
         {products?.map((p) => (
           <Card key={p.id} className={`p-3 rounded-xl border-0 ${!p.isActive ? "opacity-50" : ""}`}>
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="text-sm font-medium">{p.name}</p>
-                  {!p.isActive && <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">已下架</span>}
+            <div className="flex items-start gap-3">
+              {/* Product thumbnail */}
+              {p.imageUrl ? (
+                <img
+                  src={p.imageUrl}
+                  alt={p.name}
+                  className="w-14 h-14 rounded-lg object-cover shrink-0 border border-border/50"
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                  <ImageIcon size={20} className="text-muted-foreground/40" />
                 </div>
-                <p className="text-xs text-muted-foreground">{CATEGORY_LABELS[p.category]}</p>
-                <p className="text-sm font-bold text-primary">{formatRM(p.price)}</p>
-                <p className="text-xs text-muted-foreground">基准: {formatRM(p.baseValue)}</p>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => openEdit(p)} className="p-2 text-blue-500"><Edit size={16} /></button>
-                <button onClick={() => openZoneConfig(p)} className="p-2 text-green-500" title="配置区域价格"><Settings size={16} /></button>
-                <button onClick={() => { if (confirm("确认删除此产品？")) deleteProduct.mutate({ id: p.id }); }} className="p-2 text-red-500"><Trash2 size={16} /></button>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <p className="text-sm font-medium">{p.name}</p>
+                      {!p.isActive && <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">已下架</span>}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{CATEGORY_LABELS[p.category]}</p>
+                    <p className="text-sm font-bold text-primary">{formatRM(p.price)}</p>
+                    <p className="text-xs text-muted-foreground">基准: {formatRM(p.baseValue)}</p>
+                  </div>
+                  <div className="flex gap-1 shrink-0 ml-2">
+                    <button onClick={() => openEdit(p)} className="p-1.5 text-blue-500"><Edit size={15} /></button>
+                    <button onClick={() => openZoneConfig(p)} className="p-1.5 text-green-500" title="配置区域价格"><Settings size={15} /></button>
+                    <button onClick={() => { if (confirm("确认删除此产品？")) deleteProduct.mutate({ id: p.id }); }} className="p-1.5 text-red-500"><Trash2 size={15} /></button>
+                  </div>
+                </div>
               </div>
             </div>
           </Card>
@@ -122,12 +182,71 @@ export default function AdminProducts() {
         {(!products || products.length === 0) && <p className="text-center text-muted-foreground py-8 text-sm">暂无产品</p>}
       </div>
 
-      <Dialog open={showCreate || !!editProduct} onOpenChange={() => { setShowCreate(false); setEditProduct(null); }}>
+      <Dialog open={showCreate || !!editProduct} onOpenChange={() => { setShowCreate(false); setEditProduct(null); resetForm(); }}>
         <DialogContent className="max-w-sm mx-auto max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editProduct ? "编辑产品" : "新增产品"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            {/* Image Upload Section */}
+            <div>
+              <Label>产品图片</Label>
+              <div className="mt-1.5">
+                {imagePreview ? (
+                  <div className="relative">
+                    <img
+                      src={imagePreview}
+                      alt="产品图片预览"
+                      className="w-full h-40 object-cover rounded-lg border border-border/50"
+                    />
+                    {uploadingImage && (
+                      <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center">
+                        <p className="text-white text-sm font-medium">上传中...</p>
+                      </div>
+                    )}
+                    {!uploadingImage && (
+                      <div className="absolute top-2 right-2 flex gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="bg-white/90 hover:bg-white text-foreground rounded-full p-1.5 shadow"
+                          title="更换图片"
+                        >
+                          <Upload size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={clearImage}
+                          className="bg-white/90 hover:bg-white text-red-500 rounded-full p-1.5 shadow"
+                          title="删除图片"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full h-28 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                    disabled={uploadingImage}
+                  >
+                    <Upload size={20} />
+                    <span className="text-xs">{uploadingImage ? "上传中..." : "点击上传产品图片"}</span>
+                    <span className="text-xs opacity-60">支持 JPG、PNG，最大 5MB</span>
+                  </button>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageSelect}
+                />
+              </div>
+            </div>
+
             <div>
               <Label>产品名称</Label>
               <Input value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="mt-1.5" />
@@ -168,18 +287,14 @@ export default function AdminProducts() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>图片URL (选填)</Label>
-              <Input value={form.imageUrl} onChange={(e) => setForm({...form, imageUrl: e.target.value})} className="mt-1.5" />
-            </div>
             <div className="flex items-center gap-3">
               <Switch checked={form.isActive} onCheckedChange={(v) => setForm({...form, isActive: v})} />
               <Label>上架销售</Label>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowCreate(false); setEditProduct(null); }}>取消</Button>
-            <Button onClick={handleSubmit} disabled={createProduct.isPending || updateProduct.isPending}>
+            <Button variant="outline" onClick={() => { setShowCreate(false); setEditProduct(null); resetForm(); }}>取消</Button>
+            <Button onClick={handleSubmit} disabled={createProduct.isPending || updateProduct.isPending || uploadingImage}>
               {editProduct ? "保存" : "创建"}
             </Button>
           </DialogFooter>
