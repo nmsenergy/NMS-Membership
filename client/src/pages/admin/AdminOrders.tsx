@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Download, Search } from "lucide-react";
+import { Download, Search, MapPin, Package, CreditCard, Truck, Tag } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -18,6 +18,18 @@ const STATUS_COLORS: Record<string, string> = {
   SHIPPED: "bg-cyan-100 text-cyan-700",
   DELIVERED: "bg-green-100 text-green-700",
   CANCELLED: "bg-gray-100 text-gray-600",
+};
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  VIP_CODE: "VIP Code",
+  ONLINE_TRANSFER: "网上转账",
+  OFFLINE_PAYMENT: "现金付款",
+  GUBEN_POINTS: "固本积分",
+};
+
+const SHIPPING_LOCATION_LABELS: Record<string, string> = {
+  KK_AGENT: "KK代理商",
+  PUCHONG_HQ: "Puchong总部",
 };
 
 export default function AdminOrders() {
@@ -63,7 +75,7 @@ export default function AdminOrders() {
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="搜索订单号" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+            <Input placeholder="搜索订单号/会员名" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-28">
@@ -86,23 +98,71 @@ export default function AdminOrders() {
             <div className="space-y-2">
               {data?.orders.map((order) => (
                 <Card key={order.id} className="p-3 rounded-xl border-0 cursor-pointer hover:bg-accent/30" onClick={() => { setSelectedOrder(order); setNewStatus(order.status); }}>
+                  {/* Header: Order No + Status */}
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <p className="text-xs font-mono text-muted-foreground">{order.orderNo}</p>
-                      <p className="text-xs text-muted-foreground">{ORDER_TYPE_LABELS[order.orderType]}</p>
-                      <p className="text-xs text-muted-foreground">{(order as any).memberName || "未知会员"}</p>
+                      <p className="text-sm font-semibold">{(order as any).memberName || "未知会员"}</p>
                     </div>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[order.status] || "bg-gray-100 text-gray-600"}`}>
                       {ORDER_STATUS_LABELS[order.status]}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center">
+
+                  {/* Products */}
+                  {(order as any).products?.length > 0 && (
+                    <div className="flex items-start gap-1.5 mb-1.5">
+                      <Package size={12} className="text-muted-foreground mt-0.5 shrink-0" />
+                      <p className="text-xs text-muted-foreground">{(order as any).products.join("、")}</p>
+                    </div>
+                  )}
+
+                  {/* Shipping address */}
+                  {order.shippingAddress && (
+                    <div className="flex items-start gap-1.5 mb-1.5">
+                      <MapPin size={12} className="text-muted-foreground mt-0.5 shrink-0" />
+                      <p className="text-xs text-muted-foreground truncate">{order.shippingAddress}</p>
+                    </div>
+                  )}
+
+                  {/* Shipping location + type */}
+                  <div className="flex flex-wrap gap-1.5 mb-1.5">
+                    {order.shippingLocation && (
+                      <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">
+                        <Truck size={10} className="inline mr-0.5" />{SHIPPING_LOCATION_LABELS[order.shippingLocation] || order.shippingLocation}
+                      </span>
+                    )}
+                    <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{ORDER_TYPE_LABELS[order.orderType]}</span>
+                  </div>
+
+                  {/* Payment info */}
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <CreditCard size={12} className="text-muted-foreground shrink-0" />
+                    <p className="text-xs text-muted-foreground">
+                      {order.paymentMethod ? PAYMENT_METHOD_LABELS[order.paymentMethod] || order.paymentMethod : "未付款"}
+                      {order.paymentCode && ` · 码: ${order.paymentCode}`}
+                    </p>
+                  </div>
+
+                  {/* VIP Codes (for agent orders) */}
+                  {(order as any).vipCodes?.length > 0 && (
+                    <div className="flex items-start gap-1.5 mb-1.5">
+                      <Tag size={12} className="text-muted-foreground mt-0.5 shrink-0" />
+                      <div className="flex flex-wrap gap-1">
+                        {(order as any).vipCodes.map((code: string) => (
+                          <span key={code} className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded font-mono">{code}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Amount + Time */}
+                  <div className="flex justify-between items-center mt-1">
                     <p className="text-xs text-muted-foreground">{formatDateTime(order.createdAt)}</p>
                     <p className="text-sm font-bold text-primary">
                       {order.orderType === "REDEMPTION_ORDER" ? `${order.gubenUsed} 固本` : formatRM(order.totalAmount)}
                     </p>
                   </div>
-                  {order.paymentCode && <p className="text-xs text-muted-foreground mt-1">付款码: {order.paymentCode}</p>}
                 </Card>
               ))}
             </div>
@@ -115,22 +175,87 @@ export default function AdminOrders() {
         )}
       </div>
 
+      {/* Order Detail Dialog */}
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent className="max-w-sm mx-auto">
+        <DialogContent className="max-w-sm mx-auto max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>订单详情</DialogTitle>
           </DialogHeader>
           {selectedOrder && (
-            <div className="space-y-3">
-              <div className="space-y-1 text-sm">
-                <p><span className="text-muted-foreground">订单号: </span><span className="font-mono">{selectedOrder.orderNo}</span></p>
-                <p><span className="text-muted-foreground">会员: </span>{selectedOrder.memberName}</p>
-                <p><span className="text-muted-foreground">类型: </span>{ORDER_TYPE_LABELS[selectedOrder.orderType]}</p>
-                <p><span className="text-muted-foreground">金额: </span><strong>{selectedOrder.orderType === "REDEMPTION_ORDER" ? `${selectedOrder.gubenUsed} 固本` : formatRM(selectedOrder.totalAmount)}</strong></p>
-                {selectedOrder.paymentCode && <p><span className="text-muted-foreground">付款码: </span>{selectedOrder.paymentCode}</p>}
+            <div className="space-y-3 text-sm">
+              {/* Basic Info */}
+              <div className="space-y-1.5 bg-muted/30 rounded-lg p-3">
+                <p><span className="text-muted-foreground">订单号: </span><span className="font-mono text-xs">{selectedOrder.orderNo}</span></p>
+                <p><span className="text-muted-foreground">会员名字: </span><strong>{selectedOrder.memberName}</strong></p>
+                <p><span className="text-muted-foreground">订单类型: </span>{ORDER_TYPE_LABELS[selectedOrder.orderType]}</p>
+                <p><span className="text-muted-foreground">订单状态: </span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ml-1 ${STATUS_COLORS[selectedOrder.status] || "bg-gray-100 text-gray-600"}`}>
+                    {ORDER_STATUS_LABELS[selectedOrder.status]}
+                  </span>
+                </p>
+                <p><span className="text-muted-foreground">时间: </span>{formatDateTime(selectedOrder.createdAt)}</p>
               </div>
+
+              {/* Products */}
+              {selectedOrder.products?.length > 0 && (
+                <div className="bg-muted/30 rounded-lg p-3">
+                  <p className="text-muted-foreground font-medium mb-1.5">产品</p>
+                  {selectedOrder.products.map((p: string, i: number) => (
+                    <p key={i} className="text-sm">{p}</p>
+                  ))}
+                </div>
+              )}
+
+              {/* Shipping */}
+              {(selectedOrder.shippingAddress || selectedOrder.shippingLocation) && (
+                <div className="bg-muted/30 rounded-lg p-3">
+                  <p className="text-muted-foreground font-medium mb-1.5">送货资料</p>
+                  {selectedOrder.shippingLocation && (
+                    <p><span className="text-muted-foreground">出货点: </span>{SHIPPING_LOCATION_LABELS[selectedOrder.shippingLocation] || selectedOrder.shippingLocation}</p>
+                  )}
+                  {selectedOrder.shippingAddress && (
+                    <p><span className="text-muted-foreground">送货地址: </span>{selectedOrder.shippingAddress}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Payment */}
+              <div className="bg-muted/30 rounded-lg p-3">
+                <p className="text-muted-foreground font-medium mb-1.5">付款资料</p>
+                <p><span className="text-muted-foreground">金额: </span>
+                  <strong>{selectedOrder.orderType === "REDEMPTION_ORDER" ? `${selectedOrder.gubenUsed} 固本` : formatRM(selectedOrder.totalAmount)}</strong>
+                </p>
+                {selectedOrder.paymentMethod && (
+                  <p><span className="text-muted-foreground">付款方式: </span>{PAYMENT_METHOD_LABELS[selectedOrder.paymentMethod] || selectedOrder.paymentMethod}</p>
+                )}
+                {selectedOrder.paymentCode && (
+                  <p><span className="text-muted-foreground">付款码: </span><span className="font-mono text-xs">{selectedOrder.paymentCode}</span></p>
+                )}
+                {selectedOrder.paymentProofUrl && (
+                  <div>
+                    <p className="text-muted-foreground mb-1">付款证明:</p>
+                    <a href={selectedOrder.paymentProofUrl} target="_blank" rel="noopener noreferrer">
+                      <img src={selectedOrder.paymentProofUrl} alt="付款证明" className="w-full rounded-lg border max-h-40 object-contain" />
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {/* VIP Codes */}
+              {selectedOrder.vipCodes?.length > 0 && (
+                <div className="bg-green-50 rounded-lg p-3">
+                  <p className="text-green-700 font-medium mb-1.5">VIP Code ({selectedOrder.vipCodes.length} 个)</p>
+                  <div className="space-y-1">
+                    {selectedOrder.vipCodes.map((code: string) => (
+                      <p key={code} className="font-mono text-xs bg-white border border-green-200 rounded px-2 py-1">{code}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Update Status */}
               <div>
-                <Label>更新状态</Label>
+                <Label>更新订单状态</Label>
                 <Select value={newStatus} onValueChange={setNewStatus}>
                   <SelectTrigger className="mt-1.5">
                     <SelectValue />

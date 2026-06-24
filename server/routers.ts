@@ -835,8 +835,31 @@ const adminRouter = router({
       }
       const total = filtered.length;
       const start = (input.page - 1) * input.limit;
-      const orders = filtered.slice(start, start + input.limit);
-      return { orders, total, hasMore: start + input.limit < total };
+      const pageOrders = filtered.slice(start, start + input.limit);
+      const db = await getDb();
+      // Enrich each order with member name, products, and VIP codes
+      const enriched = await Promise.all(pageOrders.map(async (order) => {
+        const member = await getMemberById(order.memberId);
+        const memberUser = member ? await getUserByOpenId(member.userId.toString()) : null;
+        const items = db ? await db.select().from(orderItems).where(eq(orderItems.orderId, order.id)) : [];
+        const productList: string[] = [];
+        for (const item of items) {
+          const product = await getProductById(item.productId);
+          if (product) productList.push(`${product.name} x${item.quantity}`);
+        }
+        let vipCodes: string[] = [];
+        if (order.orderType === "AGENT_ORDER" && db) {
+          const codes = await db.select({ code: vipPaymentCodes.code }).from(vipPaymentCodes).where(eq(vipPaymentCodes.agentOrderId, order.id));
+          vipCodes = codes.map(c => c.code);
+        }
+        return {
+          ...order,
+          memberName: memberUser?.name ?? "未知会员",
+          products: productList,
+          vipCodes,
+        };
+      }));
+      return { orders: enriched, total, hasMore: start + input.limit < total };
     }),
 
   // Export orders
