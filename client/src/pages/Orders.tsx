@@ -1,10 +1,11 @@
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { formatRM, formatDateTime, ORDER_STATUS_LABELS, ORDER_TYPE_LABELS } from "@/lib/utils";
 import MobileHeader from "@/components/MobileHeader";
 import BottomNav from "@/components/BottomNav";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Package, Truck } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -30,14 +31,51 @@ const SHIPPING_LOCATION_LABELS: Record<string, string> = {
 export default function Orders() {
   const { data: orders, isLoading } = trpc.order.myOrders.useQuery();
   const { data: codes } = trpc.order.myCodes.useQuery();
+  const [locationFilter, setLocationFilter] = useState<string>("ALL");
 
   const filterOrders = (status?: string) =>
-    orders?.filter((o) => !status || o.status === status) ?? [];
+    (orders ?? []).filter((o) => {
+      const statusMatch = !status || o.status === status;
+      const locationMatch =
+        locationFilter === "ALL" ||
+        (locationFilter === "NONE" ? !o.shippingLocation : o.shippingLocation === locationFilter);
+      return statusMatch && locationMatch;
+    });
+
+  const applyLocationFilter = (list: any[]) =>
+    locationFilter === "ALL"
+      ? list
+      : locationFilter === "NONE"
+      ? list.filter((o) => !o.shippingLocation)
+      : list.filter((o) => o.shippingLocation === locationFilter);
 
   return (
     <div className="mobile-app pb-20">
       <MobileHeader title="我的订单" showBack={false} />
       <div className="px-4 mt-3">
+        {/* Shipping Location Filter */}
+        <div className="flex items-center gap-2 mb-3">
+          <Truck size={15} className="text-muted-foreground shrink-0" />
+          <Select value={locationFilter} onValueChange={setLocationFilter}>
+            <SelectTrigger className="h-8 text-xs flex-1">
+              <SelectValue placeholder="筛选出货点" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">全部出货点</SelectItem>
+              <SelectItem value="KK_AGENT">KK代理商</SelectItem>
+              <SelectItem value="PUCHONG_HQ">Puchong总部</SelectItem>
+            </SelectContent>
+          </Select>
+          {locationFilter !== "ALL" && (
+            <button
+              onClick={() => setLocationFilter("ALL")}
+              className="text-xs text-muted-foreground hover:text-foreground shrink-0"
+            >
+              清除
+            </button>
+          )}
+        </div>
+
         <Tabs defaultValue="all">
           <TabsList className="w-full grid grid-cols-4 text-xs">
             <TabsTrigger value="all">全部</TabsTrigger>
@@ -47,10 +85,16 @@ export default function Orders() {
           </TabsList>
 
           {["all", "pending", "active", "done"].map((tab) => {
-            const filtered = tab === "all" ? (orders ?? [])
-              : tab === "pending" ? filterOrders("PENDING_PAYMENT").concat(filterOrders("PENDING_VERIFICATION"))
-              : tab === "active" ? filterOrders("PROCESSING").concat(filterOrders("SHIPPED"))
-              : filterOrders("DELIVERED").concat(filterOrders("CANCELLED"));
+            const base =
+              tab === "all"
+                ? (orders ?? [])
+                : tab === "pending"
+                ? filterOrders("PENDING_PAYMENT").concat(filterOrders("PENDING_VERIFICATION"))
+                : tab === "active"
+                ? filterOrders("PROCESSING").concat(filterOrders("SHIPPED"))
+                : filterOrders("DELIVERED").concat(filterOrders("CANCELLED"));
+
+            const filtered = tab === "all" ? applyLocationFilter(base) : base;
 
             return (
               <TabsContent key={tab} value={tab} className="mt-3 space-y-3">
@@ -59,7 +103,9 @@ export default function Orders() {
                 ) : filtered.length === 0 ? (
                   <div className="text-center py-12">
                     <Package size={40} className="mx-auto text-muted-foreground/40 mb-3" />
-                    <p className="text-muted-foreground text-sm">暂无订单</p>
+                    <p className="text-muted-foreground text-sm">
+                      {locationFilter !== "ALL" ? `没有「${SHIPPING_LOCATION_LABELS[locationFilter] ?? locationFilter}」的订单` : "暂无订单"}
+                    </p>
                   </div>
                 ) : filtered.map((order: any) => (
                   <Card key={order.id} className="p-4 rounded-xl border-0">
@@ -94,7 +140,10 @@ export default function Orders() {
                       <div className="flex items-center gap-1.5 mb-2">
                         <Truck size={12} className="text-muted-foreground shrink-0" />
                         <p className="text-xs text-muted-foreground">
-                          出货点: <span className="font-medium text-foreground">{SHIPPING_LOCATION_LABELS[order.shippingLocation] || order.shippingLocation}</span>
+                          出货点:{" "}
+                          <span className={`font-medium ${order.shippingLocation === locationFilter && locationFilter !== "ALL" ? "text-primary" : "text-foreground"}`}>
+                            {SHIPPING_LOCATION_LABELS[order.shippingLocation] || order.shippingLocation}
+                          </span>
                         </p>
                       </div>
                     )}
