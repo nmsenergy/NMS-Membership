@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
-import { LogOut, Copy, Settings, ChevronRight, Edit, Upload, CheckCircle, Clock } from "lucide-react";
+import { LogOut, Copy, Settings, ChevronRight, Edit, Upload, CheckCircle, Clock, ArrowLeftRight } from "lucide-react";
 
 export default function Profile() {
   const { user, logout } = useAuth();
@@ -245,6 +245,11 @@ export default function Profile() {
                 </div>
               )}
             </Card>
+
+            <Button variant="outline" className="w-full" onClick={() => navigate("/switch-account")}>
+              <ArrowLeftRight size={15} className="mr-2" />
+              切换户口
+            </Button>
 
             {isAdminOrManager && (
               <Button variant="outline" className="w-full" onClick={() => navigate("/admin")}>

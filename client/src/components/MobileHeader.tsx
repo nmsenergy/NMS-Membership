@@ -1,6 +1,9 @@
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, ArrowLeftRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminView } from "@/contexts/AdminContext";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { toast } from "sonner";
 
 interface MobileHeaderProps {
   title: string;
@@ -20,37 +23,70 @@ export default function MobileHeader({
   transparent = false,
 }: MobileHeaderProps) {
   const { showAdminView, setCurrentAdminPage } = useAdminView();
+  const { user } = useAuth();
+  const { data: switchData, refetch } = trpc.member.getSwitchableAccounts.useQuery(undefined, {
+    enabled: !!user && !showAdminView,
+  });
+  const switchAccount = trpc.member.switchAccount.useMutation({
+    onSuccess: () => {
+      refetch();
+      toast.success("已切换回自己的账户");
+      // Force full page reload to refresh all cached data
+      window.location.reload();
+    },
+  });
 
   const handleBack = () => {
     if (onBack) {
       onBack();
     } else if (showAdminView) {
-      // In admin view, go back to admin dashboard
       setCurrentAdminPage("dashboard");
     }
-    // If not in admin view and no onBack, do nothing (avoid navigate which triggers unload)
   };
 
+  const isSwitched = !!switchData?.switchedTo;
+
   return (
-    <header
-      className={cn(
-        "flex items-center h-14 px-4 sticky top-0 z-40",
-        transparent ? "bg-transparent" : "bg-background border-b border-border",
-        className
+    <div className="sticky top-0 z-40">
+      <header
+        className={cn(
+          "flex items-center h-14 px-4",
+          transparent ? "bg-transparent" : "bg-background border-b border-border",
+          className
+        )}
+      >
+        {showBack && (
+          <button
+            onClick={handleBack}
+            className="p-1 -ml-1 text-foreground hover:bg-muted rounded transition-colors"
+          >
+            <ChevronLeft size={24} />
+          </button>
+        )}
+        <h1 className={cn("flex-1 text-center font-semibold text-base", showBack ? "" : "ml-0")}>
+          {title}
+        </h1>
+        <div className="w-8">{rightElement}</div>
+      </header>
+
+      {/* Switched-account banner */}
+      {isSwitched && !showAdminView && (
+        <div className="bg-amber-500 text-white px-4 py-1.5 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-1.5">
+            <ArrowLeftRight size={13} />
+            <span>
+              正在查看：<strong>{switchData.switchedTo?.referralCode}</strong>（{switchData.switchedTo?.rank}）
+            </span>
+          </div>
+          <button
+            onClick={() => switchAccount.mutate({ targetMemberId: null })}
+            disabled={switchAccount.isPending}
+            className="bg-white/20 hover:bg-white/30 rounded px-2 py-0.5 font-medium transition-colors"
+          >
+            {switchAccount.isPending ? "..." : "返回自己"}
+          </button>
+        </div>
       )}
-    >
-      {showBack && (
-        <button 
-          onClick={handleBack}
-          className="p-1 -ml-1 text-foreground hover:bg-muted rounded transition-colors"
-        >
-          <ChevronLeft size={24} />
-        </button>
-      )}
-      <h1 className={cn("flex-1 text-center font-semibold text-base", showBack ? "" : "ml-0")}>
-        {title}
-      </h1>
-      <div className="w-8">{rightElement}</div>
-    </header>
+    </div>
   );
 }

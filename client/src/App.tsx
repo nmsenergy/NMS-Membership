@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AdminProvider, useAdminView } from "./contexts/AdminContext";
+import { Router, Route, Switch } from "wouter";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import Orders from "./pages/Orders";
@@ -16,6 +17,7 @@ import ExtraRewards from "./pages/ExtraRewards";
 import Announcements from "./pages/Announcements";
 import Notifications from "./pages/Notifications";
 import Register from "./pages/Register";
+import SwitchAccount from "./pages/SwitchAccount";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminMembers from "./pages/admin/AdminMembers";
 import AdminOrders from "./pages/admin/AdminOrders";
@@ -25,11 +27,6 @@ import AdminAnnouncements from "./pages/admin/AdminAnnouncements";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminTopups from "./pages/admin/AdminTopups";
 import AdminImport from "./pages/admin/AdminImport";
-
-// Member view component
-function MemberView() {
-  return <Home />;
-}
 
 // Admin view component
 function AdminView() {
@@ -63,6 +60,28 @@ function AdminView() {
   return renderAdminPage();
 }
 
+// Member view with full routing
+function MemberView() {
+  return (
+    <Switch>
+      <Route path="/vip-zone" component={VipZone} />
+      <Route path="/agent-zone" component={AgentZone} />
+      <Route path="/orders" component={Orders} />
+      <Route path="/team" component={Team} />
+      <Route path="/topup" component={TopUp} />
+      <Route path="/withdraw" component={Withdraw} />
+      <Route path="/upgrade" component={Upgrade} />
+      <Route path="/extra-rewards" component={ExtraRewards} />
+      <Route path="/announcements" component={Announcements} />
+      <Route path="/notifications" component={Notifications} />
+      <Route path="/profile" component={Profile} />
+      <Route path="/register" component={Register} />
+      <Route path="/switch-account" component={SwitchAccount} />
+      <Route component={Home} />
+    </Switch>
+  );
+}
+
 // Root component that switches between member and admin views
 function AppContent() {
   const { showAdminView } = useAdminView();
@@ -77,7 +96,9 @@ function App() {
         <ThemeProvider defaultTheme="light">
           <TooltipProvider>
             <Toaster position="top-center" />
-            <AppContent />
+            <Router>
+              <AppContent />
+            </Router>
           </TooltipProvider>
         </ThemeProvider>
       </AdminProvider>

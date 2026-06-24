@@ -197,3 +197,19 @@
 - [x] Update upsertProduct to accept imageUrl
 - [x] Admin product form: image upload + preview
 - [x] Member-facing product pages: display product image
+
+## Bug Fix: Member Navigation Not Responding (Current)
+- [x] Diagnose why member-side clicks/navigation have no response
+- [x] Fix navigation routing issues
+
+## Account Switching Feature (Current)
+- [x] Backend: add switchAccount and getSwitchableAccounts procedures
+- [x] UI: account switcher in Profile page
+- [x] UI: show current switched account indicator in header/home
+- [x] UI: allow switching back to own account
+
+## Full Proxy Account Switch (Current)
+- [x] Server context: resolve effectiveMember from switchedToMemberId
+- [x] Update all member procedures to use effectiveMember
+- [x] Add switched-account banner on Home with quick return button
+- [x] Add tests for account switching behavior

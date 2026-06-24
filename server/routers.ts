@@ -112,8 +112,12 @@ const authRouter = router({
   me: publicProcedure.query(async (opts) => {
     const user = opts.ctx.user;
     if (!user) return null;
-    const member = await getMemberByUserId(user.id);
-    return { ...user, member };
+    // Return effectiveMember so all member-facing pages reflect the switched account.
+    // ownMember is included so the frontend can detect a switch is active.
+    const member = opts.ctx.effectiveMember;
+    const ownMember = opts.ctx.ownMember;
+    const isSwitched = !!ownMember && !!member && ownMember.id !== member.id;
+    return { ...user, member, ownMember, isSwitched };
   }),
   logout: publicProcedure.mutation(({ ctx }) => {
     const cookieOptions = getSessionCookieOptions(ctx.req);
@@ -126,7 +130,7 @@ const authRouter = router({
 
 const memberRouter = router({
   profile: protectedProcedure.query(async ({ ctx }) => {
-    const member = await getMemberByUserId(ctx.user.id);
+    const member = ctx.effectiveMember;
     if (!member) return null;
     const referrer = member.referrerId ? await getMemberById(member.referrerId) : null;
     return { ...member, referrer };
@@ -201,7 +205,7 @@ const memberRouter = router({
     }),
 
   team: protectedProcedure.query(async ({ ctx }) => {
-    const member = await getMemberByUserId(ctx.user.id);
+    const member = ctx.effectiveMember;
     if (!member) return { direct: [], total: [] };
     const direct = await getDirectReferrals(member.id);
     const total = await getTeamTree(member.id);
@@ -209,7 +213,7 @@ const memberRouter = router({
   }),
 
   rewardVisibility: protectedProcedure.query(async ({ ctx }) => {
-    const member = await getMemberByUserId(ctx.user.id);
+    const member = ctx.effectiveMember;
     if (!member) return { showCarAllowance: true, showTravelReward: true };
     return getRewardVisibility(member.id);
   }),
@@ -217,7 +221,7 @@ const memberRouter = router({
   setRewardVisibility: protectedProcedure
     .input(z.object({ showCarAllowance: z.boolean().optional(), showTravelReward: z.boolean().optional() }))
     .mutation(async ({ ctx, input }) => {
-      const member = await getMemberByUserId(ctx.user.id);
+      const member = ctx.effectiveMember;
       if (!member) throw new TRPCError({ code: "NOT_FOUND" });
       await setRewardVisibility(member.id, input);
       return { success: true };
@@ -240,10 +244,25 @@ const memberRouter = router({
       return { success: true };
     }),
 
+  getSwitchableAccounts: protectedProcedure.query(async ({ ctx }) => {
+    const member = await getMemberByUserId(ctx.user.id);
+    if (!member) return { current: null, switchedTo: null, team: [] };
+    const team = await getTeamTree(member.id);
+    let switchedTo = null;
+    if (member.switchedToMemberId) {
+      switchedTo = await getMemberById(member.switchedToMemberId);
+    }
+    return {
+      current: member,
+      switchedTo,
+      team: team.map((m) => ({ id: m.id, referralCode: m.referralCode, rank: m.rank, phone: m.phone })),
+    };
+  }),
+
   yearEndDividend: protectedProcedure
     .input(z.object({ year: z.number().default(new Date().getFullYear()) }))
     .query(async ({ ctx, input }) => {
-      const member = await getMemberByUserId(ctx.user.id);
+      const member = ctx.effectiveMember;
       if (!member) return null;
       const annualIncome = await getAnnualIncome(member.id, input.year);
       let rate = 0;
@@ -255,7 +274,7 @@ const memberRouter = router({
     }),
 
   carAllowanceStatus: protectedProcedure.query(async ({ ctx }) => {
-    const member = await getMemberByUserId(ctx.user.id);
+    const member = ctx.effectiveMember;
     if (!member || !isAgentOrAbove(member.rank)) return null;
     const now = new Date();
     const performance = await getMonthlyTeamPerformance(member.id, now.getFullYear(), now.getMonth() + 1);
@@ -266,7 +285,7 @@ const memberRouter = router({
   }),
 
   travelRewardStatus: protectedProcedure.query(async ({ ctx }) => {
-    const member = await getMemberByUserId(ctx.user.id);
+    const member = ctx.effectiveMember;
     if (!member) return null;
     const option1 = member.directVipReferrals >= 12;
     const option2 = member.directVipReferrals >= 15;
@@ -300,7 +319,7 @@ const productRouter = router({
   list: protectedProcedure
     .input(z.object({ zone: z.enum(["VIP", "AGENT", "BOTH"]).optional() }))
     .query(async ({ ctx, input }) => {
-      const member = await getMemberByUserId(ctx.user.id);
+      const member = ctx.effectiveMember;
       const rank = member?.rank ?? "VIP";
       // Agent zone only for M_AGENT+
       if (input.zone === "AGENT" && !isAgentOrAbove(rank) && ctx.user.role !== "admin") {
@@ -316,7 +335,7 @@ const productRouter = router({
     }),
 
   birthdayProducts: protectedProcedure.query(async ({ ctx }) => {
-    const member = await getMemberByUserId(ctx.user.id);
+    const member = ctx.effectiveMember;
     if (!member) return [];
     if (!member.birthdayVerified) return [];
     const now = new Date();
@@ -332,13 +351,13 @@ const productRouter = router({
 
 const orderRouter = router({
   myOrders: protectedProcedure.query(async ({ ctx }) => {
-    const member = await getMemberByUserId(ctx.user.id);
+    const member = ctx.effectiveMember;
     if (!member) return [];
     return getOrdersWithItems(member.id);
   }),
 
   myCodes: protectedProcedure.query(async ({ ctx }) => {
-    const member = await getMemberByUserId(ctx.user.id);
+    const member = ctx.effectiveMember;
     if (!member) return [];
     return getVipCodesByMember(member.id);
   }),
@@ -354,7 +373,7 @@ const orderRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const member = await getMemberByUserId(ctx.user.id);
+      const member = ctx.effectiveMember;
       if (!member) throw new TRPCError({ code: "NOT_FOUND" });
       if (!isAgentOrAbove(member.rank)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Agent rank required" });
@@ -408,7 +427,7 @@ const orderRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const member = await getMemberByUserId(ctx.user.id);
+      const member = ctx.effectiveMember;
       if (!member) throw new TRPCError({ code: "NOT_FOUND" });
 
       const vipCode = await getVipCodeByCode(input.paymentCode);
@@ -487,7 +506,7 @@ const orderRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const member = await getMemberByUserId(ctx.user.id);
+      const member = ctx.effectiveMember;
       if (!member) throw new TRPCError({ code: "NOT_FOUND" });
       if (!member.birthdayVerified) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Birthday not verified" });
@@ -563,7 +582,7 @@ const orderRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const member = await getMemberByUserId(ctx.user.id);
+      const member = ctx.effectiveMember;
       if (!member) throw new TRPCError({ code: "NOT_FOUND" });
 
       let totalGuben = 0;
@@ -629,7 +648,7 @@ const bonusRouter = router({
   gubenLedger: protectedProcedure
     .input(z.object({ from: z.date().optional(), to: z.date().optional() }))
     .query(async ({ ctx, input }) => {
-      const member = await getMemberByUserId(ctx.user.id);
+      const member = ctx.effectiveMember;
       if (!member) return [];
       return getGubenLedger(member.id, input.from, input.to);
     }),
@@ -637,7 +656,7 @@ const bonusRouter = router({
   bonusLedger: protectedProcedure
     .input(z.object({ from: z.date().optional(), to: z.date().optional() }))
     .query(async ({ ctx, input }) => {
-      const member = await getMemberByUserId(ctx.user.id);
+      const member = ctx.effectiveMember;
       if (!member) return [];
       return getBonusLedger(member.id, input.from, input.to);
     }),
@@ -651,7 +670,7 @@ const bonusRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const member = await getMemberByUserId(ctx.user.id);
+      const member = ctx.effectiveMember;
       if (!member) throw new TRPCError({ code: "NOT_FOUND" });
 
       if (input.type === "BONUS_CONVERT") {
@@ -690,7 +709,7 @@ const bonusRouter = router({
     }),
 
   myTopups: protectedProcedure.query(async ({ ctx }) => {
-    const member = await getMemberByUserId(ctx.user.id);
+    const member = ctx.effectiveMember;
     if (!member) return [];
     return getTopupsByMember(member.id);
   }),
@@ -705,7 +724,7 @@ const bonusRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const member = await getMemberByUserId(ctx.user.id);
+      const member = ctx.effectiveMember;
       if (!member) throw new TRPCError({ code: "NOT_FOUND" });
       if (!isSMOrAbove(member.rank)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "SM rank or above required for withdrawal" });
@@ -725,7 +744,7 @@ const bonusRouter = router({
     }),
 
   myWithdrawals: protectedProcedure.query(async ({ ctx }) => {
-    const member = await getMemberByUserId(ctx.user.id);
+    const member = ctx.effectiveMember;
     if (!member) return [];
     return getWithdrawalsByMember(member.id);
   }),
@@ -1770,12 +1789,12 @@ const notificationRouter = router({
   list: protectedProcedure
     .input(z.object({ limit: z.number().default(20), offset: z.number().default(0) }))
     .query(async ({ ctx, input }) => {
-      const member = await getMemberByUserId(ctx.user.id);
+      const member = ctx.effectiveMember;
       if (!member) throw new TRPCError({ code: "NOT_FOUND" });
       return getMemberNotifications(member.id, input.limit, input.offset);
     }),
   unreadCount: protectedProcedure.query(async ({ ctx }) => {
-    const member = await getMemberByUserId(ctx.user.id);
+    const member = ctx.effectiveMember;
     if (!member) throw new TRPCError({ code: "NOT_FOUND" });
     return getUnreadNotificationCount(member.id);
   }),
@@ -1786,7 +1805,7 @@ const notificationRouter = router({
       return { success: true };
     }),
   markAllAsRead: protectedProcedure.mutation(async ({ ctx }) => {
-    const member = await getMemberByUserId(ctx.user.id);
+    const member = ctx.effectiveMember;
     if (!member) throw new TRPCError({ code: "NOT_FOUND" });
     await markAllNotificationsAsRead(member.id);
     return { success: true };

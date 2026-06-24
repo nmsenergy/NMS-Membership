@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import { formatRM, RANK_LABELS, isAgentOrAbove, isSMOrAbove } from "@/lib/utils";
+import { formatRM, RANK_LABELS, isAgentOrAbove } from "@/lib/utils";
 import { getLoginUrl } from "@/const";
 import BottomNav from "@/components/BottomNav";
 import RankBadge from "@/components/RankBadge";
@@ -11,13 +11,23 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminView } from "@/contexts/AdminContext";
+import { useLocation } from "wouter";
 
 export default function Home() {
   const { user, loading: authLoading } = useAuth();
   const { setShowAdminView } = useAdminView();
+  const [, navigate] = useLocation();
   const { data: authData } = trpc.auth.me.useQuery();
   const member = (authData as any)?.member;
+  const ownMember = (authData as any)?.ownMember;
+  const isSwitched = !!(authData as any)?.isSwitched;
   const { data: announcements } = trpc.announcement.list.useQuery();
+  const switchAccount = trpc.member.switchAccount.useMutation({
+    onSuccess: () => {
+      toast.success("已切换回自己的账户");
+      window.location.reload();
+    },
+  });
 
   // Auto-redirect admin to admin dashboard
   useEffect(() => {
@@ -80,7 +90,7 @@ export default function Home() {
           <h1 className="text-xl font-bold mb-2">完善会员资料</h1>
           <p className="text-muted-foreground text-sm">请先完成会员注册以使用所有功能</p>
         </div>
-        <Button className="w-full max-w-xs" onClick={() => setShowAdminView(false)}>
+        <Button className="w-full max-w-xs" onClick={() => navigate("/register")}>
           立即注册
         </Button>
       </div>
@@ -99,12 +109,31 @@ export default function Home() {
   const quickActions = [
     { label: "Top Up", icon: Wallet, path: "/topup", color: "bg-purple-100 text-purple-600" },
     { label: "我要提现", icon: ArrowUpRight, path: "/withdraw", color: "bg-green-100 text-green-600", agentOnly: true },
-    { label: "奖金明细", icon: TrendingUp, path: "/profile?tab=bonus", color: "bg-blue-100 text-blue-600" },
+    { label: "奖金明细", icon: TrendingUp, path: "/profile", color: "bg-blue-100 text-blue-600" },
     { label: "我要升级", icon: Star, path: "/upgrade", color: "bg-amber-100 text-amber-600" },
   ];
 
   return (
     <div className="mobile-app pb-20">
+      {/* Switched-account banner */}
+      {isSwitched && ownMember && (
+        <div className="bg-amber-500 text-white px-4 py-2 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-1.5">
+            <ArrowUpRight size={13} className="rotate-90" />
+            <span>
+              正在查看：<strong>{member?.referralCode}</strong>（{member?.rank}）
+            </span>
+          </div>
+          <button
+            onClick={() => switchAccount.mutate({ targetMemberId: null })}
+            disabled={switchAccount.isPending}
+            className="bg-white/20 hover:bg-white/30 rounded px-2 py-0.5 font-medium transition-colors"
+          >
+            {switchAccount.isPending ? "..." : "返回自己"}
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="gradient-header px-5 pt-12 pb-20 text-white">
         <div className="flex items-center justify-between mb-4">
@@ -121,7 +150,7 @@ export default function Home() {
               <Copy size={13} />
             </button>
           </div>
-          <button onClick={() => setShowAdminView(false)} className="relative p-2">
+          <button onClick={() => navigate("/notifications")} className="relative p-2">
             <Bell size={22} className="text-white" />
             {announcements && announcements.length > 0 && (
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-400 rounded-full" />
@@ -158,7 +187,7 @@ export default function Home() {
               return (
                 <button
                   key={action.label}
-                  onClick={() => setShowAdminView(false)}
+                  onClick={() => navigate(action.path)}
                   className="flex flex-col items-center gap-2"
                 >
                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${action.color}`}>
@@ -178,7 +207,7 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <Bell size={16} className="text-amber-600 shrink-0" />
               <p className="text-sm text-amber-800 truncate flex-1">{announcements[0].title}</p>
-              <button onClick={() => setShowAdminView(false)}>
+              <button onClick={() => navigate("/announcements")}>
                 <ChevronRight size={16} className="text-amber-600" />
               </button>
             </div>
@@ -217,7 +246,7 @@ export default function Home() {
             return (
               <button
                 key={item.path}
-                onClick={() => setShowAdminView(false)}
+                onClick={() => navigate(item.path)}
                 className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-accent/50 transition-colors ${i < arr.length - 1 ? "border-b border-border/50" : ""}`}
               >
                 <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
