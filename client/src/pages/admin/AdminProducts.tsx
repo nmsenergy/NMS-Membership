@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Edit, Trash2, Settings, Upload, X, ImageIcon } from "lucide-react";
+import { Plus, Edit, Trash2, Settings, Upload, X, ImageIcon, Tag } from "lucide-react";
 import { toast } from "sonner";
 
 const CATEGORIES = ["VIP_PACKAGE", "VIP_BENEFIT_ITEM", "BIRTHDAY_ITEM", "REDEMPTION_ITEM", "AGENT_PACKAGE", "AGENT_ITEM", "ASSESSMENT_ITEM"];
@@ -44,6 +44,14 @@ export default function AdminProducts() {
   const deleteProduct = trpc.admin.deleteProduct.useMutation({
     onSuccess: () => { toast.success("产品已删除"); utils.product.list.invalidate(); },
     onError: (e) => toast.error(e.message),
+  });
+
+  const toggleDiscount = trpc.product.toggleDiscount.useMutation({
+    onSuccess: () => {
+      toast.success("优惠状态已更新");
+      utils.product.list.invalidate();
+    },
+    onError: (e: any) => toast.error(e.message),
   });
 
   const setCalculationBase = trpc.admin.setCalculationBase.useMutation({
@@ -163,6 +171,7 @@ export default function AdminProducts() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <p className="text-sm font-medium">{p.name}</p>
+                      {p.isDiscount && <span className="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-medium">🎉 优惠</span>}
                       {!p.isActive && <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">已下架</span>}
                     </div>
                     <p className="text-xs text-muted-foreground">{CATEGORY_LABELS[p.category]}</p>
@@ -170,6 +179,15 @@ export default function AdminProducts() {
                     <p className="text-xs text-muted-foreground">基准: {formatRM(p.baseValue)}</p>
                   </div>
                   <div className="flex gap-1 shrink-0 ml-2">
+                    <button
+                      onClick={() => toggleDiscount.mutate({ productId: p.id, isDiscount: !p.isDiscount })}
+                      className={`p-1.5 transition-colors ${
+                        p.isDiscount ? "text-orange-500" : "text-gray-400 hover:text-orange-500"
+                      }`}
+                      title={p.isDiscount ? "取消优惠" : "设为优惠"}
+                    >
+                      <Tag size={15} />
+                    </button>
                     <button onClick={() => openEdit(p)} className="p-1.5 text-blue-500"><Edit size={15} /></button>
                     <button onClick={() => openZoneConfig(p)} className="p-1.5 text-green-500" title="配置区域价格"><Settings size={15} /></button>
                     <button onClick={() => { if (confirm("确认删除此产品？")) deleteProduct.mutate({ id: p.id }); }} className="p-1.5 text-red-500"><Trash2 size={15} /></button>

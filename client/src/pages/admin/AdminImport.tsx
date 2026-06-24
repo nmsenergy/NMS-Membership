@@ -100,7 +100,20 @@ export default function AdminImport() {
 
     setImportStep("importing");
     try {
-      const result = await importMembersMutation.mutateAsync(importData);
+      // Convert ImportRow[] to CSV string format
+      const csvLines = ["Name,OpenId,ReferralCode,Phone,Birthday"];
+      importData.forEach(row => {
+        const line = [
+          row.name,
+          row.openId,
+          row.referralCode || "",
+          row.phone || "",
+          row.birthday || "",
+        ].join(",");
+        csvLines.push(line);
+      });
+      const csvData = csvLines.join("\n");
+      const result = await importMembersMutation.mutateAsync({ csvData });
       toast.success(`成功导入${result.created}条会员记录`);
       setImportData([]);
       setValidationErrors([]);
