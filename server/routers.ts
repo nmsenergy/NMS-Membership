@@ -72,7 +72,7 @@ import {
   vipPaymentCodes,
 } from "../drizzle/schema";
 import { eq, gte, lte, and } from "drizzle-orm";
-import { getUserByOpenId } from "./db";
+import { getUserByOpenId, getUserById } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -840,7 +840,7 @@ const adminRouter = router({
       // Enrich each order with member name, products, and VIP codes
       const enriched = await Promise.all(pageOrders.map(async (order) => {
         const member = await getMemberById(order.memberId);
-        const memberUser = member ? await getUserByOpenId(member.userId.toString()) : null;
+        const memberUser = member ? await getUserById(member.userId) : null;
         const items = db ? await db.select().from(orderItems).where(eq(orderItems.orderId, order.id)) : [];
         const productList: string[] = [];
         for (const item of items) {
@@ -874,7 +874,7 @@ const adminRouter = router({
       for (const order of all) {
         // Get member info
         const member = await getMemberById(order.memberId);
-        const memberUser = member ? await getUserByOpenId(member.userId.toString()) : null;
+        const memberUser = member ? await getUserById(member.userId) : null;
         
         // Get order items and product names
         const items = db ? await db.select().from(orderItems).where(eq(orderItems.orderId, order.id)) : [];
