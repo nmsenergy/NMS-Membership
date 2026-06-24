@@ -17,7 +17,7 @@ export default function Home() {
   const { user, loading: authLoading } = useAuth();
   const { setShowAdminView } = useAdminView();
   const [, navigate] = useLocation();
-  const { data: authData } = trpc.auth.me.useQuery();
+  const { data: authData, isLoading: authMeLoading } = trpc.auth.me.useQuery();
   const member = (authData as any)?.member;
   const ownMember = (authData as any)?.ownMember;
   const isSwitched = !!(authData as any)?.isSwitched;
@@ -45,7 +45,8 @@ export default function Home() {
     );
   }
 
-  if (authLoading) {
+  // Show skeleton while either the OAuth state OR the member data is loading
+  if (authLoading || authMeLoading) {
     return (
       <div className="mobile-app">
         <div className="gradient-header p-6 pt-12 pb-16">
@@ -90,7 +91,14 @@ export default function Home() {
           <h1 className="text-xl font-bold mb-2">完善会员资料</h1>
           <p className="text-muted-foreground text-sm">请先完成会员注册以使用所有功能</p>
         </div>
-        <Button className="w-full max-w-xs" onClick={() => navigate("/register")}>
+        <Button
+          className="w-full max-w-xs"
+          onClick={() => {
+            // Use window.location for reliable navigation within the SPA
+            window.history.pushState({}, "", "/register");
+            window.dispatchEvent(new PopStateEvent("popstate"));
+          }}
+        >
           立即注册
         </Button>
       </div>
