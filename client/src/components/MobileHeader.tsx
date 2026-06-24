@@ -32,8 +32,9 @@ export default function MobileHeader({
     onSuccess: () => {
       refetch();
       toast.success("已切换回自己的账户");
-      // Force full page reload to refresh all cached data
-      window.location.reload();
+      // Navigate to home first, then reload to refresh all cached data
+      navigate("/");
+      setTimeout(() => window.location.reload(), 100);
     },
   });
 

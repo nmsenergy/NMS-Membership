@@ -3,10 +3,10 @@ import { formatRM, isAgentOrAbove } from "@/lib/utils";
 import MobileHeader from "@/components/MobileHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+
 import { Car, Plane, Lock } from "lucide-react";
 import { useLocation } from "wouter";
-import { toast } from "sonner";
+
 import { useFeatureVisibility } from "@/hooks/useFeatureVisibility";
 
 export default function ExtraRewards() {
@@ -15,14 +15,10 @@ export default function ExtraRewards() {
   const member = (authData as any)?.member;
   const { data: carStatus } = trpc.member.carAllowanceStatus.useQuery();
   const { data: travelStatus } = trpc.member.travelRewardStatus.useQuery();
-  const { data: visibility } = trpc.member.rewardVisibility.useQuery();
-  const utils = trpc.useUtils();
+
   const { isVisible } = useFeatureVisibility();
 
-  const setVisibility = trpc.member.setRewardVisibility.useMutation({
-    onSuccess: () => utils.member.rewardVisibility.invalidate(),
-    onError: (e) => toast.error(e.message),
-  });
+
 
   // Admin-controlled visibility for each section
   const showCarSection = isVisible("car_allowance");
@@ -49,18 +45,9 @@ export default function ExtraRewards() {
         {/* Car Allowance - admin controlled */}
         {showCarSection && (
           <Card className="p-4 rounded-xl border-0">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Car size={20} className="text-blue-500" />
-                <h3 className="font-semibold">汽车供车津贴</h3>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>显示</span>
-                <Switch
-                  checked={visibility?.showCarAllowance ?? true}
-                  onCheckedChange={(v) => setVisibility.mutate({ showCarAllowance: v })}
-                />
-              </div>
+            <div className="flex items-center gap-2 mb-3">
+              <Car size={20} className="text-blue-500" />
+              <h3 className="font-semibold">汽车供车津贴</h3>
             </div>
             {carStatus ? (
               <div className="space-y-2">
@@ -97,18 +84,9 @@ export default function ExtraRewards() {
         {/* Travel Reward - admin controlled */}
         {showTravelSection && (
           <Card className="p-4 rounded-xl border-0">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Plane size={20} className="text-green-500" />
-                <h3 className="font-semibold">旅游奖励</h3>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>显示</span>
-                <Switch
-                  checked={visibility?.showTravelReward ?? true}
-                  onCheckedChange={(v) => setVisibility.mutate({ showTravelReward: v })}
-                />
-              </div>
+            <div className="flex items-center gap-2 mb-3">
+              <Plane size={20} className="text-green-500" />
+              <h3 className="font-semibold">旅游奖励</h3>
             </div>
             {travelStatus && (
               <div className="space-y-3">
