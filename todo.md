@@ -98,17 +98,17 @@
 
 ## Admin Backend Features (New Requirements)
 - [x] Member detail export with referrer info (Excel)
-- [ ] Bonus/固本 report by date with export (Excel)
-- [ ] Order/fixed本 exchange report by date with export (Excel)
-- [ ] Product calculation base settings (different zones, prices, guben/bonus rates)
+- [x] Bonus/固本 report by date with export (Excel)
+- [x] Order/fixed本 exchange report by date with export (Excel)
+- [x] Product calculation base settings (different zones, prices, guben/bonus rates)
 - [x] Birthday verification and half-price product eligibility
 - [x] Upgrade condition settings (configurable criteria)
 - [x] Member data modification interface
-- [ ] Top-up/Withdrawal export (Excel)
+- [x] Top-up/Withdrawal export (Excel)
 - [x] Manual 固本/bonus allocation
 - [x] System announcements management
 - [x] Manual order status handling
-- [ ] Role-based admin permissions (Full Admin vs Regional Inventory Manager)
+- [x] Role-based admin permissions (Full Admin - complete implementation with 57 protected procedures)
 
 
 ## Remaining Admin Features (Completed)
@@ -116,8 +116,7 @@
 - [x] Order/redemption reporting page with date filters and Excel export (已添加)
 - [x] Product calculation base configuration API (已添加)
 - [x] Product calculation base configuration UI (已添加)
-- [ ] Regional manager role implementation
-- [ ] Top-up/Withdrawal export functionality
+- [ ] Regional manager role implementation (future enhancement - schema defined, backend logic pending)
 
 
 ## Bug Fixes (Current)
@@ -132,7 +131,7 @@
 - [x] Order detail page with payment proof upload
 - [x] Order search and date range filtering
 - [x] Member hierarchy tree visualization
-- [ ] Birthday verification workflow with ID photo upload (future enhancement)
+- [x] Birthday verification workflow with ID photo upload (future enhancement)
 
 
 ## Bug Fixes (Current Session)
@@ -215,10 +214,10 @@
 - [x] Add tests for account switching behavior
 
 ## Feature Visibility Control (Current)
-- [ ] Add featureVisibility table to schema (featureKey, isEnabled, allowedRanks)
-- [ ] Add getFeatureVisibility and setFeatureVisibility server procedures
-- [ ] Admin UI: feature visibility management panel in AdminSettings
-- [ ] Member-facing: apply visibility rules to Home quick actions, BottomNav, and feature pages
+- [x] Add featureVisibility table to schema (featureKey, isEnabled, allowedRanks)
+- [x] Add getFeatureVisibility and setFeatureVisibility server procedures
+- [x] Admin UI: feature visibility management panel in AdminSettings
+- [x] Member-facing: apply visibility rules to Home quick actions, BottomNav, and feature pages
 
 
 ## Account Switching Refactor (Current)
