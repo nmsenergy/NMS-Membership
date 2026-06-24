@@ -178,6 +178,135 @@ const authRouter = router({
     ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
     return { success: true } as const;
   }),
+
+  requestPasswordReset: publicProcedure
+    .input(z.object({ email: z.string().email(), resetUrl: z.string().url() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      
+      const result = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+      const user = result[0];
+      
+      if (!user) {
+        return { success: true, message: "If an account exists, a reset link will be sent" };
+      }
+      
+      const { passwordResetTokens } = await import("../drizzle/schema");
+      const token = nanoid(32);
+      const expiresAt = new Date(Date.now() + 3600000);
+      
+      await db.insert(passwordResetTokens).values({
+        userId: user.id,
+        token,
+        expiresAt,
+      });
+      
+      const { sendEmail, generatePasswordResetEmail } = await import("./_core/email");
+      const resetLink = `${input.resetUrl}?token=${token}`;
+      const emailHtml = generatePasswordResetEmail(resetLink, 1);
+      
+      const emailSent = await sendEmail({
+        to: input.email,
+        subject: "密碼重設請求",
+        html: emailHtml,
+      });
+      
+      return { success: true, message: "If an account exists, a reset link will be sent", emailSent };
+    }),
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  verifyPasswordResetToken: publicProcedure
+    .input(z.object({ token: z.string() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      
+      const { passwordResetTokens } = await import("../drizzle/schema");
+      const result = await db
+        .select()
+        .from(passwordResetTokens)
+        .where(eq(passwordResetTokens.token, input.token))
+        .limit(1);
+      
+      const tokenRecord = result[0];
+      
+      if (!tokenRecord) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Invalid reset token" });
+      }
+      
+      if (tokenRecord.usedAt) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Reset token already used" });
+      }
+      
+      if (new Date() > tokenRecord.expiresAt) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Reset token expired" });
+      }
+      
+      return { valid: true, userId: tokenRecord.userId };
+    }),
+
+  completePasswordReset: publicProcedure
+    .input(z.object({ token: z.string(), newPassword: z.string().min(6) }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      
+      const { passwordResetTokens } = await import("../drizzle/schema");
+      const result = await db
+        .select()
+        .from(passwordResetTokens)
+        .where(eq(passwordResetTokens.token, input.token))
+        .limit(1);
+      
+      const tokenRecord = result[0];
+      
+      if (!tokenRecord) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Invalid reset token" });
+      }
+      
+      if (tokenRecord.usedAt) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Reset token already used" });
+      }
+      
+      if (new Date() > tokenRecord.expiresAt) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Reset token expired" });
+      }
+      
+      const newHash = await hashPassword(input.newPassword);
+      await updateUser(tokenRecord.userId, { passwordHash: newHash });
+      
+      await db
+        .update(passwordResetTokens)
+        .set({ usedAt: new Date() })
+        .where(eq(passwordResetTokens.token, input.token));
+      
+      return { success: true, message: "Password reset successfully" };
+    }),
 });
 
 // ─── Member Router ────────────────────────────────────────────────────────────

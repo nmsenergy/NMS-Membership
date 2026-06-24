@@ -246,3 +246,17 @@
 - [x] Fix admin password reset to use userId instead of member id
 - [x] Write comprehensive password authentication tests (10 tests passing)
 - [x] Verify end-to-end flow: admin reset -> member login -> password change
+
+
+## Forgot Password Self-Service Flow (Completed)
+- [x] Add passwordResetTokens table to schema (userId, token, expiresAt, createdAt, usedAt)
+- [x] Implement requestPasswordReset procedure (validate email, generate token, store in DB, send email)
+- [x] Implement verifyPasswordResetToken procedure (check token validity and expiry)
+- [x] Implement completePasswordReset procedure (verify token, update password, mark token as used)
+- [x] Create email.ts utility (sendEmail, generatePasswordResetEmail)
+- [x] Create ForgotPassword page UI (email input, submit button, success message)
+- [x] Create ResetPassword page UI (token validation, new password input, confirmation)
+- [x] Add /forgot-password and /reset-password routes to App.tsx
+- [x] Update Login page with "Forgot Password?" link
+- [x] Write comprehensive password reset flow tests (72 tests total, all passing)
+- [x] Test end-to-end: request reset -> verify email -> reset password -> login with new password

@@ -19,6 +19,8 @@ import Notifications from "./pages/Notifications";
 import Register from "./pages/Register";
 import SwitchAccount from "./pages/SwitchAccount";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminMembers from "./pages/admin/AdminMembers";
 import AdminOrders from "./pages/admin/AdminOrders";
@@ -66,6 +68,8 @@ function MemberView() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/vip-zone" component={VipZone} />
       <Route path="/agent-zone" component={AgentZone} />
       <Route path="/orders" component={Orders} />

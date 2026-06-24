@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Star, Mail, Lock, ArrowRight } from "lucide-react";
 import { getLoginUrl } from "@/const";
+import { Link } from "wouter";
 
 export default function Login() {
   const [, navigate] = useLocation();
@@ -136,6 +137,13 @@ export default function Login() {
               )}
             </Button>
           </form>
+
+          {/* Forgot Password Link */}
+          <div className="text-right mt-4">
+            <Link href="/forgot-password" className="text-xs text-primary hover:underline">
+              忘記密碼？
+            </Link>
+          </div>
 
           {/* Divider */}
           <div className="relative my-6">

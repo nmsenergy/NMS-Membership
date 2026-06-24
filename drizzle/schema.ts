@@ -355,7 +355,7 @@ export const featureVisibility = mysqlTable("feature_visibility", {
   id: int("id").autoincrement().primaryKey(),
   featureKey: varchar("featureKey", { length: 64 }).notNull().unique(),
   isEnabled: boolean("isEnabled").default(true).notNull(),
-  allowedRanks: varchar("allowedRanks", { length: 255 }).notNull(), // JSON string array of rank keys, empty = all ranks
+  allowedRanks: varchar("allowedRanks", { length: 255 }).default("").notNull(), // JSON string array of rank keys, empty = all ranks
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
@@ -376,3 +376,19 @@ export const loginHistory = mysqlTable("login_history", {
 
 export type LoginHistory = typeof loginHistory.$inferSelect;
 export type InsertLoginHistory = typeof loginHistory.$inferInsert;
+
+
+// ─── Password Reset Tokens ────────────────────────────────────────────────────
+// Store password reset tokens with expiration for self-service password recovery
+
+export const passwordResetTokens = mysqlTable("password_reset_tokens", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(), // FK → users.id
+  token: varchar("token", { length: 255 }).notNull().unique(), // Random token sent in email
+  expiresAt: timestamp("expiresAt").notNull(), // Token expiration time (default: 1 hour)
+  usedAt: timestamp("usedAt"), // When token was used to reset password (null if not used)
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;

@@ -22,6 +22,16 @@ CREATE TABLE `bonus_ledger` (
 	CONSTRAINT `bonus_ledger_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
+CREATE TABLE `feature_visibility` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`featureKey` varchar(64) NOT NULL,
+	`isEnabled` boolean NOT NULL DEFAULT true,
+	`allowedRanks` varchar(255) NOT NULL DEFAULT '',
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `feature_visibility_id` PRIMARY KEY(`id`),
+	CONSTRAINT `feature_visibility_featureKey_unique` UNIQUE(`featureKey`)
+);
+--> statement-breakpoint
 CREATE TABLE `guben_ledger` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`memberId` int NOT NULL,
@@ -34,6 +44,27 @@ CREATE TABLE `guben_ledger` (
 	CONSTRAINT `guben_ledger_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
+CREATE TABLE `login_history` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`userId` int NOT NULL,
+	`memberId` int NOT NULL,
+	`loginCount` int NOT NULL DEFAULT 1,
+	`lastLoginAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `login_history_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `manual_bonus_allocations` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`memberId` int NOT NULL,
+	`type` enum('GUBEN','BONUS') NOT NULL,
+	`amount` decimal(12,2) NOT NULL,
+	`reason` text NOT NULL,
+	`allocatedBy` int NOT NULL,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `manual_bonus_allocations_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
 CREATE TABLE `members` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`userId` int NOT NULL,
@@ -43,17 +74,30 @@ CREATE TABLE `members` (
 	`phone` varchar(32),
 	`birthday` varchar(10),
 	`birthdayVerified` boolean NOT NULL DEFAULT false,
+	`birthdayIdPhotoUrl` text,
 	`isActive` boolean NOT NULL DEFAULT true,
 	`gubenBalance` int NOT NULL DEFAULT 0,
 	`bonusBalance` decimal(12,2) NOT NULL DEFAULT '0.00',
 	`vipPackagesBought` int NOT NULL DEFAULT 0,
 	`directVipReferrals` int NOT NULL DEFAULT 0,
 	`directMAgentReferrals` int NOT NULL DEFAULT 0,
-	`switchedToMemberId` int,
 	`createdAt` timestamp NOT NULL DEFAULT (now()),
 	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `members_id` PRIMARY KEY(`id`),
 	CONSTRAINT `members_referralCode_unique` UNIQUE(`referralCode`)
+);
+--> statement-breakpoint
+CREATE TABLE `notifications` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`memberId` int NOT NULL,
+	`title` varchar(255) NOT NULL,
+	`content` text NOT NULL,
+	`type` enum('ANNOUNCEMENT','BONUS','ORDER','SYSTEM','REMINDER') NOT NULL DEFAULT 'ANNOUNCEMENT',
+	`isRead` boolean NOT NULL DEFAULT false,
+	`actionUrl` varchar(512),
+	`createdBy` int,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `notifications_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
 CREATE TABLE `order_items` (
@@ -80,10 +124,34 @@ CREATE TABLE `orders` (
 	`gubenUsed` int NOT NULL DEFAULT 0,
 	`notes` text,
 	`shippingAddress` text,
+	`shippingLocation` enum('KK_AGENT','PUCHONG_HQ'),
 	`createdAt` timestamp NOT NULL DEFAULT (now()),
 	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `orders_id` PRIMARY KEY(`id`),
 	CONSTRAINT `orders_orderNo_unique` UNIQUE(`orderNo`)
+);
+--> statement-breakpoint
+CREATE TABLE `password_reset_tokens` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`userId` int NOT NULL,
+	`token` varchar(255) NOT NULL,
+	`expiresAt` timestamp NOT NULL,
+	`usedAt` timestamp,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `password_reset_tokens_id` PRIMARY KEY(`id`),
+	CONSTRAINT `password_reset_tokens_token_unique` UNIQUE(`token`)
+);
+--> statement-breakpoint
+CREATE TABLE `product_calculation_base` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`productId` int NOT NULL,
+	`zone` enum('VIP','AGENT','BOTH') NOT NULL,
+	`gubenBase` decimal(12,2) NOT NULL,
+	`bonusBase` decimal(12,2) NOT NULL,
+	`gubenRate` decimal(5,2) NOT NULL DEFAULT '15.00',
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `product_calculation_base_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
 CREATE TABLE `products` (
@@ -140,6 +208,40 @@ CREATE TABLE `topups` (
 	CONSTRAINT `topups_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
+CREATE TABLE `upgrade_conditions` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`rank` enum('VIP','M_AGENT','SM','GM','CEO') NOT NULL,
+	`requiredDirectVips` int NOT NULL DEFAULT 0,
+	`requiredDirectMAgents` int NOT NULL DEFAULT 0,
+	`requiredVipPackages` int NOT NULL DEFAULT 0,
+	`requiredTeamSales` decimal(12,2) NOT NULL DEFAULT '0.00',
+	`carAllowanceMonthlyTeamSales` decimal(12,2) NOT NULL DEFAULT '18000.00',
+	`carAllowanceSubMemberCap` decimal(12,2) NOT NULL DEFAULT '6000.00',
+	`carAllowancePerQualifiedMember` decimal(12,2) NOT NULL DEFAULT '200.00',
+	`travelRewardVipCount` int NOT NULL DEFAULT 12,
+	`travelRewardAssessmentAmount` decimal(12,2) NOT NULL DEFAULT '2800.00',
+	`dividendMinAnnualIncome` decimal(12,2) NOT NULL DEFAULT '0.00',
+	`dividendRate` decimal(5,2) NOT NULL DEFAULT '0.00',
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `upgrade_conditions_id` PRIMARY KEY(`id`),
+	CONSTRAINT `upgrade_conditions_rank_unique` UNIQUE(`rank`)
+);
+--> statement-breakpoint
+CREATE TABLE `users` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`openId` varchar(64) NOT NULL,
+	`name` text,
+	`email` varchar(320),
+	`loginMethod` varchar(64),
+	`passwordHash` text,
+	`role` enum('user','admin','regional_manager') NOT NULL DEFAULT 'user',
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	`lastSignedIn` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `users_id` PRIMARY KEY(`id`),
+	CONSTRAINT `users_openId_unique` UNIQUE(`openId`)
+);
+--> statement-breakpoint
 CREATE TABLE `vip_payment_codes` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`code` varchar(64) NOT NULL,
@@ -167,5 +269,3 @@ CREATE TABLE `withdrawals` (
 	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `withdrawals_id` PRIMARY KEY(`id`)
 );
---> statement-breakpoint
-ALTER TABLE `users` MODIFY COLUMN `role` enum('user','admin','regional_manager') NOT NULL DEFAULT 'user';
