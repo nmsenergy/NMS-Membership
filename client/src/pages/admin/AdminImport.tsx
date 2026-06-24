@@ -22,7 +22,8 @@ export default function AdminImport() {
   const [importData, setImportData] = useState<ImportRow[]>([]);
   const [validationErrors, setValidationErrors] = useState<Array<{ row: number; error: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [importStep, setImportStep] = useState<"select" | "preview" | "validating" | "importing">("select");
+  const [importStep, setImportStep] = useState<"select" | "preview" | "validating" | "importing" | "result">("select");
+  const [importResult, setImportResult] = useState<{ created: number; failed: Array<{ row: ImportRow; reason: string }>; total: number } | null>(null);
 
   const downloadTemplateMutation = trpc.admin.downloadTemplate.useMutation();
   const validateImportMutation = trpc.admin.validateImport.useMutation();
@@ -121,19 +122,13 @@ export default function AdminImport() {
       
       console.log(`[Import] Starting import of ${importData.length} members`);
       const result = await importMembersMutation.mutateAsync({ csvData });
-      console.log(`[Import] Success: ${result.created} members imported`);
+      console.log(`[Import] Success: ${result.created} members imported, ${result.failed?.length || 0} failed`);
       
       toast.dismiss(toastId);
-      toast.success(`✅ 成功导入 ${result.created} 条会员记录`);
       
-      // Reset form
-      setImportData([]);
-      setValidationErrors([]);
-      setSelectedFile(null);
-      setImportStep("select");
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      // Store result and show result page
+      setImportResult(result);
+      setImportStep("result");
     } catch (error: any) {
       console.error(`[Import] Error:`, error);
       toast.dismiss(toastId);
@@ -317,6 +312,111 @@ export default function AdminImport() {
             </Button>
           </div>
         </Card>
+      )}
+
+      {/* Result Page */}
+      {importStep === "result" && importResult && (
+        <div className="space-y-6">
+          <Card className="p-6 border-green-200 bg-green-50">
+            <div className="flex items-start gap-4">
+              <CheckCircle size={24} className="text-green-600 flex-shrink-0 mt-1" />
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold text-green-900 mb-2">导入完成</h2>
+                <div className="grid grid-cols-3 gap-4 mt-4">
+                  <div className="bg-white rounded-lg p-4">
+                    <p className="text-sm text-gray-600">总数</p>
+                    <p className="text-2xl font-bold text-gray-900">{importResult.total}</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-4">
+                    <p className="text-sm text-green-600">成功</p>
+                    <p className="text-2xl font-bold text-green-600">{importResult.created}</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-4">
+                    <p className="text-sm text-red-600">失败</p>
+                    <p className="text-2xl font-bold text-red-600">{importResult.failed?.length || 0}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {importResult.failed && importResult.failed.length > 0 && (
+            <Card className="p-6 border-red-200 bg-red-50">
+              <div className="flex items-center gap-2 mb-4">
+                <XCircle size={20} className="text-red-600" />
+                <h3 className="font-semibold text-red-900">失败记录 ({importResult.failed.length})</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-red-200">
+                      <th className="text-left py-2 px-3 font-semibold text-red-900">姓名</th>
+                      <th className="text-left py-2 px-3 font-semibold text-red-900">电邮地址</th>
+                      <th className="text-left py-2 px-3 font-semibold text-red-900">失败原因</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {importResult.failed.map((item, idx) => (
+                      <tr key={idx} className="border-b border-red-100 hover:bg-red-100/50">
+                        <td className="py-2 px-3">{item.row.姓名}</td>
+                        <td className="py-2 px-3">{item.row.电邮地址}</td>
+                        <td className="py-2 px-3 text-red-600">{item.reason}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-4 flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const csv = ['姓名,电邮地址,国家,州属,邮区编号,城市,推荐人'];
+                    importResult.failed.forEach(item => {
+                      const line = [
+                        item.row.姓名,
+                        item.row.电邮地址,
+                        item.row.国家 || '',
+                        item.row.州属 || '',
+                        item.row.邮区编号 || '',
+                        item.row.城市 || '',
+                        item.row.推荐人,
+                      ].join(',');
+                      csv.push(line);
+                    });
+                    const blob = new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', `failed_members_${new Date().toISOString().split('T')[0]}.csv`);
+                    link.click();
+                    toast.success('失败记录已导出');
+                  }}
+                >
+                  <Download size={16} className="mr-2" />
+                  导出失败记录
+                </Button>
+              </div>
+            </Card>
+          )}
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setImportStep("select");
+                setImportResult(null);
+                setImportData([]);
+                setValidationErrors([]);
+                setSelectedFile(null);
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = "";
+                }
+              }}
+            >
+              返回开始
+            </Button>
+          </div>
+        </div>
       )}
 
       {/* Instructions */}

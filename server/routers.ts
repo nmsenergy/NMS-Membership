@@ -1682,20 +1682,32 @@ const adminRouter = router({
       }
       
       let created = 0;
+      const failed = [];
+      
       for (const row of rows) {
         try {
           // Generate openId from email
           const openId = `email_${row.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
           await upsertUser({ openId, name: row.name, email: row.email });
           const user = await getUserByOpenId(openId);
-          if (!user) continue;
+          if (!user) {
+            failed.push({ row, reason: '無法創建用戶帳戶' });
+            continue;
+          }
           const existing = await getMemberByUserId(user.id);
-          if (existing) continue;
+          if (existing) {
+            failed.push({ row, reason: '會員已存在' });
+            continue;
+          }
           
           // Find referrer by name from pre-loaded map
           let referrerId;
           if (row.referrerName && row.referrerName.trim()) {
             referrerId = referrerMap.get(row.referrerName);
+            if (!referrerId) {
+              failed.push({ row, reason: `推薦人 "${row.referrerName}" 不存在` });
+              continue;
+            }
           }
           
           await createMember({
@@ -1717,10 +1729,12 @@ const adminRouter = router({
           });
           created++;
         } catch (e) {
+          const errorMsg = e instanceof Error ? e.message : '未知錯誤';
           console.error('Import error for', row.name, e);
+          failed.push({ row, reason: errorMsg });
         }
       }
-      return { created };
+      return { created, failed, total: rows.length };
     }),
   downloadTemplate: adminProcedure.mutation(async () => {
     const XLSX = await import("xlsx");
