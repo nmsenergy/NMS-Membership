@@ -821,11 +821,25 @@ const adminRouter = router({
         isActive: z.boolean().optional(),
         phone: z.string().optional(),
         birthday: z.string().optional(),
+        // User-level fields
+        name: z.string().optional(),
+        email: z.string().email().optional(),
+        // Referrer change
+        referrerId: z.number().nullable().optional(),
       })
     )
     .mutation(async ({ input }) => {
-      const { id, ...data } = input;
-      await updateMember(id, data);
+      const { id, name, email, referrerId, ...memberData } = input;
+      // Update member table fields
+      await updateMember(id, { ...memberData, ...(referrerId !== undefined ? { referrerId } : {}) });
+      // Update user table fields (name, email) if provided
+      const member = await getMemberById(id);
+      if (member && (name !== undefined || email !== undefined)) {
+        await updateUser(member.userId, {
+          ...(name !== undefined ? { name } : {}),
+          ...(email !== undefined ? { email } : {}),
+        });
+      }
       return getMemberById(id);
     }),
 

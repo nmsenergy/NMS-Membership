@@ -24,6 +24,10 @@ export default function AdminMembers() {
   const [editBirthday, setEditBirthday] = useState("");
   const [editBirthdayVerified, setEditBirthdayVerified] = useState(false);
   const [editNotes, setEditNotes] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editIsActive, setEditIsActive] = useState(true);
+  const [editReferrerId, setEditReferrerId] = useState<string>("");
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
@@ -70,6 +74,10 @@ export default function AdminMembers() {
     setEditBirthday(m.birthday || "");
     setEditBirthdayVerified(m.birthdayVerified || false);
     setEditNotes(m.notes || "");
+    setEditName(m.userName || "");
+    setEditEmail(m.userEmail || "");
+    setEditIsActive(m.isActive !== false);
+    setEditReferrerId(m.referrerId ? String(m.referrerId) : "");
   };
 
   const toggleExpand = (id: number) => {
@@ -295,11 +303,32 @@ export default function AdminMembers() {
 
       {/* Edit Dialog */}
       <Dialog open={!!editMember} onOpenChange={() => setEditMember(null)}>
-        <DialogContent className="max-w-sm mx-auto max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-sm mx-auto max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>编辑会员: {editMember?.userName}</DialogTitle>
+            <DialogTitle>编辑会员: {editMember?.userName || editMember?.id}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            {/* Basic Info */}
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">基本资料</p>
+            <div>
+              <Label>会员名字</Label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="mt-1.5" placeholder="输入姓名" />
+            </div>
+            <div>
+              <Label>电邮地址</Label>
+              <Input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="mt-1.5" placeholder="输入电邮" />
+            </div>
+            <div>
+              <Label>手机号码</Label>
+              <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="mt-1.5" placeholder="输入手机号码" />
+            </div>
+            <div>
+              <Label>生日日期</Label>
+              <Input type="date" value={editBirthday} onChange={(e) => setEditBirthday(e.target.value)} className="mt-1.5" />
+            </div>
+
+            {/* Account Settings */}
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pt-1">账户设置</p>
             <div>
               <Label>身份等级</Label>
               <Select value={editRank} onValueChange={setEditRank}>
@@ -314,12 +343,16 @@ export default function AdminMembers() {
               </Select>
             </div>
             <div>
-              <Label>手机号码</Label>
-              <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="mt-1.5" />
-            </div>
-            <div>
-              <Label>生日</Label>
-              <Input type="date" value={editBirthday} onChange={(e) => setEditBirthday(e.target.value)} className="mt-1.5" />
+              <Label>账户状态</Label>
+              <Select value={editIsActive ? "active" : "inactive"} onValueChange={(v) => setEditIsActive(v === "active")}>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">✅ 启用</SelectItem>
+                  <SelectItem value="inactive">❌ 停用</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center gap-3">
               <input
@@ -330,9 +363,19 @@ export default function AdminMembers() {
               />
               <Label htmlFor="bv">生日身份已认证</Label>
             </div>
+
+            {/* Referrer Change */}
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pt-1">更换推荐人</p>
             <div>
-              <Label>备注</Label>
-              <Input value={editNotes} onChange={(e) => setEditNotes(e.target.value)} className="mt-1.5" />
+              <Label>推荐人会员ID</Label>
+              <Input
+                type="number"
+                value={editReferrerId}
+                onChange={(e) => setEditReferrerId(e.target.value)}
+                className="mt-1.5"
+                placeholder="输入推荐人的会员ID（留空保持不变）"
+              />
+              <p className="text-xs text-muted-foreground mt-1">当前推荐人: {editMember?.referrerName || "无"} (ID: {editMember?.referrerId || "—"})</p>
             </div>
           </div>
           <DialogFooter>
@@ -342,14 +385,18 @@ export default function AdminMembers() {
                 updateMember.mutate({
                   id: editMember.id,
                   rank: editRank as any,
-                  phone: editPhone,
-                  birthday: editBirthday,
+                  phone: editPhone || undefined,
+                  birthday: editBirthday || undefined,
                   birthdayVerified: editBirthdayVerified,
+                  isActive: editIsActive,
+                  name: editName || undefined,
+                  email: editEmail || undefined,
+                  referrerId: editReferrerId ? Number(editReferrerId) : undefined,
                 })
               }
               disabled={updateMember.isPending}
             >
-              保存
+              {updateMember.isPending ? "保存中..." : "保存"}
             </Button>
           </DialogFooter>
         </DialogContent>
