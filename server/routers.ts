@@ -69,6 +69,7 @@ import {
   productCalculationBase,
   orderItems,
   users,
+  vipPaymentCodes,
 } from "../drizzle/schema";
 import { eq, gte, lte, and } from "drizzle-orm";
 import { getUserByOpenId } from "./db";
@@ -862,6 +863,13 @@ const adminRouter = router({
           }
         }
         
+        // Get VIP codes generated from this agent order
+        let vipCodesList = "";
+        if (order.orderType === "AGENT_ORDER" && db) {
+          const codes = await db.select({ code: vipPaymentCodes.code }).from(vipPaymentCodes).where(eq(vipPaymentCodes.agentOrderId, order.id));
+          vipCodesList = codes.map(c => c.code).join("; ");
+        }
+        
         rows.push({
           订单号: order.orderNo,
           下单人: memberUser?.name ?? "",
@@ -873,6 +881,7 @@ const adminRouter = router({
           金额: order.totalAmount,
           付款方式: order.paymentMethod ?? "",
           付款证明: order.paymentProofUrl ?? "",
+          VIP_Code: vipCodesList,
           时间: order.createdAt.toISOString().split("T")[0],
         });
       }
