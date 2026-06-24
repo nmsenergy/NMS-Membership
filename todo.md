@@ -177,3 +177,10 @@
 - [x] Update App.tsx to use state-based routing
 - [x] Update admin components to use router.push
 - [x] Test SPA routing without unload errors
+
+
+## 计算准则整合 (Current)
+- [x] Remove standalone 计算准则 page from admin menu
+- [x] Remove AdminCalculationBase from App.tsx routing
+- [x] Add calculation base reference section to AdminBonuses (collapsible, with product selector)
+- [x] AdminProducts already has full calculation base management (Settings button per product)

@@ -24,7 +24,6 @@ import AdminBonuses from "./pages/admin/AdminBonuses";
 import AdminAnnouncements from "./pages/admin/AdminAnnouncements";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminTopups from "./pages/admin/AdminTopups";
-import AdminCalculationBase from "./pages/admin/AdminCalculationBase";
 import AdminImport from "./pages/admin/AdminImport";
 
 // Member view component
@@ -54,8 +53,6 @@ function AdminView() {
         return <AdminSettings />;
       case "topups":
         return <AdminTopups />;
-      case "calculation-base":
-        return <AdminCalculationBase />;
       case "import":
         return <AdminImport />;
       default:

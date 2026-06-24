@@ -9,8 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Plus } from "lucide-react";
+import { Download, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
+
+const ZONE_LABELS: Record<string, string> = {
+  VIP: "VIP区",
+  AGENT: "代理区",
+  BOTH: "两个区",
+};
 
 export default function AdminBonuses() {
   const [showManual, setShowManual] = useState(false);
@@ -22,8 +28,15 @@ export default function AdminBonuses() {
   const [page, setPage] = useState(1);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [showCalcRef, setShowCalcRef] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string>("");
 
   const { data: bonusReport } = trpc.admin.bonusReport.useQuery({ page, limit: 30, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined });
+  const { data: products } = trpc.product.list.useQuery({ zone: "BOTH" });
+  const { data: calculationBases } = trpc.admin.getCalculationBases.useQuery(
+    { productId: selectedProductId ? parseInt(selectedProductId) : 0 },
+    { enabled: !!selectedProductId }
+  );
   const utils = trpc.useUtils();
 
   const manualBonus = trpc.admin.manualBonus.useMutation({
@@ -76,6 +89,61 @@ export default function AdminBonuses() {
             </Card>
           </div>
         )}
+
+        {/* 计算准则参考区域 */}
+        <Card className="rounded-xl border-0 overflow-hidden">
+          <button
+            className="w-full flex items-center justify-between p-3 text-left"
+            onClick={() => setShowCalcRef(!showCalcRef)}
+          >
+            <span className="text-sm font-medium">计算准则参考</span>
+            {showCalcRef ? <ChevronUp size={16} className="text-muted-foreground" /> : <ChevronDown size={16} className="text-muted-foreground" />}
+          </button>
+          {showCalcRef && (
+            <div className="px-3 pb-3 space-y-3 border-t border-border/30 pt-3">
+              <div>
+                <Label className="text-xs">选择产品</Label>
+                <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+                  <SelectTrigger className="mt-1.5 h-8 text-xs">
+                    <SelectValue placeholder="选择产品查看计算准则" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {products?.map((p) => (
+                      <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {selectedProductId && (
+                <div className="space-y-2">
+                  {calculationBases && calculationBases.length > 0 ? (
+                    calculationBases.map((base) => (
+                      <div key={base.id} className="bg-muted/30 rounded-lg p-2.5">
+                        <p className="text-xs font-medium text-primary mb-1.5">{ZONE_LABELS[base.zone] || base.zone}</p>
+                        <div className="grid grid-cols-3 gap-2 text-xs">
+                          <div>
+                            <p className="text-muted-foreground">固本基数</p>
+                            <p className="font-medium">{formatRM(base.gubenBase)}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">奖金基数</p>
+                            <p className="font-medium">{formatRM(base.bonusBase)}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">固本比率</p>
+                            <p className="font-medium">{(parseFloat(base.gubenRate) * 100).toFixed(0)}%</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center py-2">该产品暂无计算准则设置</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </Card>
 
         <div className="space-y-2">
           {bonusReport?.entries.map((entry) => (
