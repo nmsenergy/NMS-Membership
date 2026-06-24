@@ -67,8 +67,11 @@ import {
   manualBonusAllocations,
   bonusLedger,
   productCalculationBase,
+  orderItems,
+  users,
 } from "../drizzle/schema";
 import { eq, gte, lte, and } from "drizzle-orm";
+import { getUserByOpenId } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -841,14 +844,39 @@ const adminRouter = router({
     .mutation(async () => {
       const XLSX = await import("xlsx");
       const all = await getAllOrders({});
-      const rows = all.map((o) => ({
-        订单号: o.orderNo,
-        类型: o.orderType,
-        状态: o.status,
-        金额: o.totalAmount,
-        付款码: o.paymentCode ?? "",
-        时间: o.createdAt.toISOString(),
-      }));
+      const db = await getDb();
+      const rows = [];
+      
+      for (const order of all) {
+        // Get member info
+        const member = await getMemberById(order.memberId);
+        const memberUser = member ? await getUserByOpenId(member.userId.toString()) : null;
+        
+        // Get order items and product names
+        const items = db ? await db.select().from(orderItems).where(eq(orderItems.orderId, order.id)) : [];
+        const productNames = [];
+        for (const item of items) {
+          const product = await getProductById(item.productId);
+          if (product) {
+            productNames.push(`${product.name}(x${item.quantity})`);
+          }
+        }
+        
+        rows.push({
+          订单号: order.orderNo,
+          下单人: memberUser?.name ?? "",
+          产品: productNames.join("; ") || "",
+          送货地址: order.shippingAddress ?? "",
+          出货点: order.shippingLocation === "KK_AGENT" ? "KK代理商" : order.shippingLocation === "PUCHONG_HQ" ? "Puchong总部" : "",
+          订单类型: order.orderType,
+          订单状态: order.status,
+          金额: order.totalAmount,
+          付款方式: order.paymentMethod ?? "",
+          付款证明: order.paymentProofUrl ?? "",
+          时间: order.createdAt.toISOString().split("T")[0],
+        });
+      }
+      
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Orders");
