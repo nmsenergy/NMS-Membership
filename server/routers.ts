@@ -1676,7 +1676,9 @@ const adminRouter = router({
       const existingMembers = db ? await db.select().from(members).innerJoin(users, eq(members.userId, users.id)) : [];
       const referrerMap = new Map<string, number>();
       for (const record of existingMembers) {
-        referrerMap.set(record.users.name, record.members.id);
+        if (record.users.name) {
+          referrerMap.set(record.users.name, record.members.id);
+        }
       }
       
       let created = 0;
