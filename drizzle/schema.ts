@@ -345,3 +345,19 @@ export const notifications = mysqlTable("notifications", {
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
+
+// ─── Feature Visibility ───────────────────────────────────────────────────────
+// Admin-controlled per-feature visibility: which ranks can see each feature.
+// allowedRanks is a JSON array of rank strings, e.g. ["VIP","M_AGENT","SM","GM","CEO"]
+// An empty allowedRanks means the feature is visible to ALL ranks (when isEnabled=true).
+
+export const featureVisibility = mysqlTable("feature_visibility", {
+  id: int("id").autoincrement().primaryKey(),
+  featureKey: varchar("featureKey", { length: 64 }).notNull().unique(),
+  isEnabled: boolean("isEnabled").default(true).notNull(),
+  allowedRanks: varchar("allowedRanks", { length: 255 }).notNull(), // JSON string array of rank keys, empty = all ranks
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type FeatureVisibility = typeof featureVisibility.$inferSelect;
+export type InsertFeatureVisibility = typeof featureVisibility.$inferInsert;

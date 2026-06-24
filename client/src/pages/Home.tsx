@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminView } from "@/contexts/AdminContext";
 import { useLocation } from "wouter";
+import { useFeatureVisibility } from "@/hooks/useFeatureVisibility";
 
 export default function Home() {
   const { user, loading: authLoading } = useAuth();
@@ -22,6 +23,7 @@ export default function Home() {
   const ownMember = (authData as any)?.ownMember;
   const isSwitched = !!(authData as any)?.isSwitched;
   const { data: announcements } = trpc.announcement.list.useQuery();
+  const { isVisible } = useFeatureVisibility();
   const switchAccount = trpc.member.switchAccount.useMutation({
     onSuccess: () => {
       toast.success("已切换回自己的账户");
@@ -115,10 +117,10 @@ export default function Home() {
   const rank = member.rank ?? "VIP";
 
   const quickActions = [
-    { label: "Top Up", icon: Wallet, path: "/topup", color: "bg-purple-100 text-purple-600" },
-    { label: "我要提现", icon: ArrowUpRight, path: "/withdraw", color: "bg-green-100 text-green-600", agentOnly: true },
+    { label: "Top Up", icon: Wallet, path: "/topup", color: "bg-purple-100 text-purple-600", featureKey: "topup" },
+    { label: "我要提现", icon: ArrowUpRight, path: "/withdraw", color: "bg-green-100 text-green-600", agentOnly: true, featureKey: "withdraw" },
     { label: "奖金明细", icon: TrendingUp, path: "/profile", color: "bg-blue-100 text-blue-600" },
-    { label: "我要升级", icon: Star, path: "/upgrade", color: "bg-amber-100 text-amber-600" },
+    { label: "我要升级", icon: Star, path: "/upgrade", color: "bg-amber-100 text-amber-600", featureKey: "upgrade" },
   ];
 
   return (
@@ -189,7 +191,7 @@ export default function Home() {
       <div className="px-4 mt-4">
         <div className="grid grid-cols-4 gap-3">
           {quickActions
-            .filter((a) => !a.agentOnly || isAgentOrAbove(rank))
+            .filter((a) => (!a.agentOnly || isAgentOrAbove(rank)) && (!a.featureKey || isVisible(a.featureKey)))
             .map((action) => {
               const Icon = action.icon;
               return (
@@ -244,12 +246,12 @@ export default function Home() {
         <h3 className="text-sm font-semibold text-muted-foreground px-1 mb-2">基础服务</h3>
         <Card className="rounded-xl border-0 overflow-hidden">
           {[
-            { label: "VIP商城", desc: "购买VIP配套和产品", path: "/vip-zone", icon: ShoppingBagIcon },
-            ...(isAgentOrAbove(rank) ? [{ label: "代理区", desc: "代理专属产品", path: "/agent-zone", icon: BoxIcon }] : []),
-            { label: "我的订单", desc: "查看所有订单记录", path: "/orders", icon: OrderIcon },
-            { label: "我的团队", desc: "查看团队成员", path: "/team", icon: TeamIcon },
-            ...(isAgentOrAbove(rank) ? [{ label: "额外奖励", desc: "汽车津贴、旅游奖励", path: "/extra-rewards", icon: GiftIcon }] : []),
-          ].map((item, i, arr) => {
+            { label: "VIP商城", desc: "购买VIP配套和产品", path: "/vip-zone", icon: ShoppingBagIcon, featureKey: "vip_zone" },
+            ...(isAgentOrAbove(rank) && isVisible("agent_zone") ? [{ label: "代理区", desc: "代理专属产品", path: "/agent-zone", icon: BoxIcon, featureKey: "agent_zone" }] : []),
+            { label: "我的订单", desc: "查看所有订单记录", path: "/orders", icon: OrderIcon, featureKey: "orders" },
+            { label: "我的团队", desc: "查看团队成员", path: "/team", icon: TeamIcon, featureKey: "team" },
+            ...(isAgentOrAbove(rank) && isVisible("extra_rewards") ? [{ label: "额外奖励", desc: "汽车津贴、旅游奖励", path: "/extra-rewards", icon: GiftIcon, featureKey: "extra_rewards" }] : []),
+          ].filter((item) => isVisible((item as any).featureKey ?? "")).map((item, i, arr) => {
             const Icon = item.icon;
             return (
               <button

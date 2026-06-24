@@ -1,0 +1,1 @@
+ALTER TABLE `feature_visibility` MODIFY COLUMN `allowedRanks` varchar(255) NOT NULL;

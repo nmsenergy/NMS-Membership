@@ -70,6 +70,7 @@ import {
   orderItems,
   users,
   vipPaymentCodes,
+  featureVisibility as featureVisibilityTable,
 } from "../drizzle/schema";
 import { eq, gte, lte, and } from "drizzle-orm";
 import { getUserByOpenId, getUserById } from "./db";
@@ -747,6 +748,21 @@ const bonusRouter = router({
     const member = ctx.effectiveMember;
     if (!member) return [];
     return getWithdrawalsByMember(member.id);
+  }),
+
+});
+
+// ─── Feature Visibility Router ────────────────────────────────────────────────
+
+const featureVisibilityRouter = router({
+  list: publicProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return [];
+    const rows = await db.select().from(featureVisibilityTable);
+    return rows.map(r => ({
+      ...r,
+      allowedRanks: (() => { try { return JSON.parse(r.allowedRanks || '[]'); } catch { return []; } })()
+    }));
   }),
 });
 
@@ -1656,6 +1672,39 @@ const adminRouter = router({
       return { base64 };
     }),
 
+  // Feature Visibility Management (admin)
+  getFeatureVisibility: adminProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return [];
+    return db.select().from(featureVisibilityTable);
+  }),
+
+  setFeatureVisibility: adminProcedure
+    .input(z.object({
+      featureKey: z.string(),
+      isEnabled: z.boolean(),
+      allowedRanks: z.array(z.enum(["VIP", "M_AGENT", "SM", "GM", "CEO"])),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const allowedRanksStr = JSON.stringify(input.allowedRanks);
+      const existing = await db.select().from(featureVisibilityTable)
+        .where(eq(featureVisibilityTable.featureKey, input.featureKey));
+      if (existing.length > 0) {
+        await db.update(featureVisibilityTable)
+          .set({ isEnabled: input.isEnabled, allowedRanks: allowedRanksStr })
+          .where(eq(featureVisibilityTable.featureKey, input.featureKey));
+      } else {
+        await db.insert(featureVisibilityTable).values({
+          featureKey: input.featureKey,
+          isEnabled: input.isEnabled,
+          allowedRanks: allowedRanksStr,
+        });
+      }
+      return { success: true };
+    }),
+
   // Export withdrawals
   exportWithdrawals: adminProcedure
     .input(z.object({ dateFrom: z.string().optional(), dateTo: z.string().optional() }).optional())
@@ -1828,6 +1877,7 @@ export const appRouter = router({
   announcement: announcementRouter,
   notification: notificationRouter,
   admin: adminRouter,
+  features: featureVisibilityRouter,
 });
 
 export type AppRouter = typeof appRouter;

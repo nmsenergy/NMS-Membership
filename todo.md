@@ -213,3 +213,9 @@
 - [x] Update all member procedures to use effectiveMember
 - [x] Add switched-account banner on Home with quick return button
 - [x] Add tests for account switching behavior
+
+## Feature Visibility Control (Current)
+- [ ] Add featureVisibility table to schema (featureKey, isEnabled, allowedRanks)
+- [ ] Add getFeatureVisibility and setFeatureVisibility server procedures
+- [ ] Admin UI: feature visibility management panel in AdminSettings
+- [ ] Member-facing: apply visibility rules to Home quick actions, BottomNav, and feature pages

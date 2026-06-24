@@ -1,0 +1,1 @@
+ALTER TABLE `feature_visibility` MODIFY COLUMN `allowedRanks` text NOT NULL DEFAULT ('[]');
