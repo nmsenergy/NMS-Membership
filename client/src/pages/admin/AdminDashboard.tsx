@@ -7,7 +7,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, ShoppingBag, TrendingUp, Settings, Package, Bell, Wallet, ChevronRight, LogOut, Zap } from "lucide-react";
 import { toast } from "sonner";
-import { Link } from "wouter";
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
@@ -92,7 +91,7 @@ export default function AdminDashboard() {
             );
           })}
         </Card>
-        <Link href="/" className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 border bg-transparent shadow-xs hover:bg-accent h-9 px-4 py-2 w-full mt-4">返回会员首页</Link>
+        <button onClick={() => setShowAdminView(false)} className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 border bg-transparent shadow-xs hover:bg-accent h-9 px-4 py-2 w-full mt-4">返回会员首页</button>
       </div>
     </div>
   );
