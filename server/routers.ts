@@ -749,10 +749,16 @@ const adminRouter = router({
       if (input.rank) filtered = filtered.filter(({ member }) => member.rank === input.rank);
       const total = filtered.length;
       const start = (input.page - 1) * input.limit;
+      // Build referrer map for quick lookup
+      const referrerMap: Record<number, string> = {};
+      for (const { member, user } of all) {
+        referrerMap[member.id] = user?.name ?? member.referralCode;
+      }
       const members = filtered.slice(start, start + input.limit).map(({ member, user }) => ({
         ...member,
         userName: user?.name ?? null,
         userEmail: user?.email ?? null,
+        referrerName: member.referrerId ? (referrerMap[member.referrerId] ?? null) : null,
       }));
       return { members, total, hasMore: start + input.limit < total };
     }),
