@@ -50,6 +50,8 @@ import {
   updateOrderStatus,
   getUserIdentity,
   getOrdersForRegionalManager,
+  setRegionalManagerConfig,
+  getRegionalManagerConfig,
   updateTopupStatus,
   createNotification,
   getMemberNotifications,
@@ -75,6 +77,7 @@ import {
   vipPaymentCodes,
   featureVisibility as featureVisibilityTable,
   loginHistory,
+  regionalManagerConfig,
 } from "../drizzle/schema";
 import { eq, gte, lte, and, desc } from "drizzle-orm";
 import { getUserByOpenId, getUserById } from "./db";
@@ -1952,6 +1955,82 @@ const adminRouter = router({
       const passwordHash = await hashPassword(tempPassword);
       await updateUser(input.userId, { passwordHash });
       return { tempPassword };
+    }),
+
+  // Regional Manager Configuration
+  regionalManagers: adminProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      const configs = await db.select().from(regionalManagerConfig);
+      const result = await Promise.all(configs.map(async (config) => {
+        const user = await getUserById(config.userId);
+        return {
+          ...config,
+          userName: user?.name || "Unknown",
+          userEmail: user?.email || "Unknown",
+        };
+      }));
+      return result;
+    }),
+
+  createRegionalManager: adminProcedure
+    .input(z.object({
+      userId: z.number(),
+      allowedLocations: z.array(z.string()),
+      description: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const user = await getUserById(input.userId);
+      if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+      if (user.role !== "regional_manager") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "User must have regional_manager role" });
+      }
+      await setRegionalManagerConfig(input.userId, input.allowedLocations, input.description);
+      return { success: true };
+    }),
+
+  updateRegionalManager: adminProcedure
+    .input(z.object({
+      userId: z.number(),
+      allowedLocations: z.array(z.string()),
+      description: z.string().optional(),
+      isActive: z.boolean().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB not available");
+      const user = await getUserById(input.userId);
+      if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+      
+      const locationsJson = JSON.stringify(input.allowedLocations);
+      await db.update(regionalManagerConfig)
+        .set({
+          allowedLocations: locationsJson,
+          description: input.description,
+          isActive: input.isActive ?? true,
+          updatedAt: new Date(),
+        })
+        .where(eq(regionalManagerConfig.userId, input.userId));
+      return { success: true };
+    }),
+
+  deleteRegionalManager: adminProcedure
+    .input(z.object({ userId: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB not available");
+      await db.delete(regionalManagerConfig)
+        .where(eq(regionalManagerConfig.userId, input.userId));
+      return { success: true };
+    }),
+
+  // Get all users with regional_manager role for selection
+  regionalManagerCandidates: adminProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(users).where(eq(users.role, "regional_manager"));
     }),
 
 });

@@ -30,6 +30,7 @@ import AdminAnnouncements from "./pages/admin/AdminAnnouncements";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminTopups from "./pages/admin/AdminTopups";
 import AdminImport from "./pages/admin/AdminImport";
+import AdminRegionalManagers from "./pages/admin/AdminRegionalManagers";
 
 // Admin view component
 function AdminView() {
@@ -55,6 +56,8 @@ function AdminView() {
         return <AdminTopups />;
       case "import":
         return <AdminImport />;
+      case "regional-managers":
+        return <AdminRegionalManagers />;
       default:
         return <AdminDashboard />;
     }
