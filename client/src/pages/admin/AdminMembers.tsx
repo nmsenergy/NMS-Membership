@@ -76,6 +76,18 @@ export default function AdminMembers() {
     onError: (e) => toast.error(e.message),
   });
 
+  const [showPasswordResult, setShowPasswordResult] = useState(false);
+  const [tempPassword, setTempPassword] = useState("");
+
+  const resetPassword = trpc.admin.resetMemberPassword.useMutation({
+    onSuccess: (data) => {
+      setTempPassword(data.tempPassword);
+      setShowPasswordResult(true);
+      toast.success("临时密码已生成");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const exportExcel = trpc.admin.exportMembers.useMutation({
     onSuccess: (data) => {
       const binaryString = atob(data.base64);
@@ -423,6 +435,37 @@ export default function AdminMembers() {
               />
               <Label htmlFor="bv">生日身份已认证</Label>
             </div>
+
+            {/* Login Credentials */}
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pt-1">登入资料</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => resetPassword.mutate({ userId: editMember.id })}
+              disabled={resetPassword.isPending}
+            >
+              {resetPassword.isPending ? "生成中..." : "🔑 重置密码"}
+            </Button>
+            {showPasswordResult && tempPassword && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+                <p className="text-xs font-semibold text-blue-900">临时密码已生成</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 bg-white border rounded px-2 py-1 text-sm font-mono text-blue-600">{tempPassword}</code>
+                  <button
+                    type="button"
+                    className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                    onClick={() => {
+                      navigator.clipboard.writeText(tempPassword);
+                      toast.success("已复制到剪贴板");
+                    }}
+                  >
+                    复制
+                  </button>
+                </div>
+                <p className="text-xs text-blue-800">请将此密码告知会员，会员可用此密码登入并修改密码。</p>
+              </div>
+            )}
 
             {/* Referrer Change */}
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pt-1">更换推荐人</p>

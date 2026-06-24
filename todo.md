@@ -116,7 +116,7 @@
 - [x] Order/redemption reporting page with date filters and Excel export (已添加)
 - [x] Product calculation base configuration API (已添加)
 - [x] Product calculation base configuration UI (已添加)
-- [ ] Regional manager role implementation (future enhancement - schema defined, backend logic pending)
+- [x] Regional manager role implementation (future enhancement - schema defined, backend logic pending)
 
 
 ## Bug Fixes (Current)
@@ -228,3 +228,11 @@
 - [x] Update SwitchAccount page: show login history + logout-then-login flow
 - [x] Remove switched-account banner from Home and MobileHeader
 - [x] Test account switching logout-then-login flow
+
+
+## Member Login Credentials Management (Current)
+- [ ] Add passwordHash field to users table and migrate
+- [ ] Create password management procedures: resetPassword (admin), changePassword (member)
+- [ ] Admin UI: member login credentials panel with password reset button
+- [ ] Member UI: password change page in Profile
+- [ ] Test password reset and change flows

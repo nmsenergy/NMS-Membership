@@ -2,6 +2,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import * as bcrypt from "bcryptjs";
 import {
   addBonusEntry,
   addGubenEntry,
@@ -93,6 +94,7 @@ function generateReferralCode() {
 
 
 const RANK_ORDER = { VIP: 0, M_AGENT: 1, SM: 2, GM: 3, CEO: 4 };
+const BCRYPT_ROUNDS = 10;
 
 function isAgentOrAbove(rank: string) {
   return ["M_AGENT", "SM", "GM", "CEO"].includes(rank);
@@ -107,6 +109,19 @@ const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Admin only" });
   return next({ ctx });
 });
+
+// ─── Password Management Helpers ──────────────────────────────────────────────
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, BCRYPT_ROUNDS);
+}
+
+async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
+}
+
+function generateTempPassword(): string {
+  return Math.random().toString(36).slice(2, 10).toUpperCase();
+}
 
 // ─── Auth Router ──────────────────────────────────────────────────────────────
 
@@ -131,6 +146,23 @@ const authRouter = router({
 // ─── Member Router ────────────────────────────────────────────────────────────
 
 const memberRouter = router({
+  // Change password for current user
+  changePassword: protectedProcedure
+    .input(z.object({ currentPassword: z.string(), newPassword: z.string().min(6) }))
+    .mutation(async ({ ctx, input }) => {
+      const user = await getUserById(ctx.user.id);
+      if (!user || !user.passwordHash) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Password not set for this account" });
+      }
+      const isValid = await verifyPassword(input.currentPassword, user.passwordHash);
+      if (!isValid) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Current password is incorrect" });
+      }
+      const newHash = await hashPassword(input.newPassword);
+      await updateUser(ctx.user.id, { passwordHash: newHash });
+      return { success: true };
+    }),
+
   profile: protectedProcedure.query(async ({ ctx }) => {
     const member = ctx.member;
     if (!member) return null;
@@ -1741,7 +1773,19 @@ const adminRouter = router({
       return { base64 };
     }),
 
+  // Password management: reset password for member
+  resetMemberPassword: adminProcedure
+    .input(z.object({ userId: z.number() }))
+    .mutation(async ({ input }) => {
+      const tempPassword = generateTempPassword();
+      const passwordHash = await hashPassword(tempPassword);
+      await updateUser(input.userId, { passwordHash });
+      return { tempPassword };
+    }),
+
 });
+
+// Password change procedure in member router (added separately)
 
 // ─── Bonus Distribution Logic ─────────────────────────────────────────────────
 

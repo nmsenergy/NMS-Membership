@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { formatRM, formatDate, formatDateTime, RANK_LABELS, BONUS_TYPE_LABELS, ORDER_STATUS_LABELS, ORDER_TYPE_LABELS, isSMOrAbove, isAgentOrAbove } from "@/lib/utils";
@@ -30,6 +30,10 @@ export default function Profile() {
   const [editPhone, setEditPhone] = useState(member?.phone || "");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const updateProfile = trpc.member.updateProfile.useMutation({
     onSuccess: () => {
@@ -50,6 +54,17 @@ export default function Profile() {
       toast.error(e.message);
       setUploadingPhoto(false);
     },
+  });
+
+  const changePassword = trpc.member.changePassword.useMutation({
+    onSuccess: () => {
+      toast.success("密码已修改");
+      setShowPasswordDialog(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    },
+    onError: (e) => toast.error(e.message),
   });
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -246,6 +261,21 @@ export default function Profile() {
               )}
             </Card>
 
+            {/* Password Change */}
+            <Card className="p-4 rounded-xl border-0">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold">登入资料</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => setShowPasswordDialog(true)}
+              >
+                🔑 修改密码
+              </Button>
+            </Card>
+
             <Button variant="outline" className="w-full" onClick={() => navigate("/switch-account")}>
               <ArrowLeftRight size={15} className="mr-2" />
               切换户口
@@ -277,6 +307,52 @@ export default function Profile() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>取消</Button>
             <Button onClick={handleSaveProfile} disabled={updateProfile.isPending || !editName.trim()}>保存</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Change Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent className="max-w-sm mx-auto">
+          <DialogHeader>
+            <DialogTitle>修改密码</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>当前密码</Label>
+              <Input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="mt-1.5" placeholder="输入当前密码" />
+            </div>
+            <div>
+              <Label>新密码</Label>
+              <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="mt-1.5" placeholder="输入新密码（最少6位）" />
+            </div>
+            <div>
+              <Label>确认密码</Label>
+              <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="mt-1.5" placeholder="确认新密码" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>取消</Button>
+            <Button
+              onClick={() => {
+                if (!currentPassword.trim()) {
+                  toast.error("请输入当前密码");
+                  return;
+                }
+                if (newPassword.length < 6) {
+                  toast.error("新密码最少6位");
+                  return;
+                }
+                if (newPassword !== confirmPassword) {
+                  toast.error("两次密码不一致");
+                  return;
+                }
+                changePassword.mutate({ currentPassword, newPassword });
+              }}
+              disabled={changePassword.isPending}
+            >
+              {changePassword.isPending ? "修改中..." : "修改"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
