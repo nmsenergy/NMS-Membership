@@ -70,14 +70,14 @@ export default function Home() {
             className="w-full"
             onClick={() => navigate("/login")}
           >
-            使用密码登录
+            使用密碼登入
           </Button>
           <Button
             variant="outline"
             className="w-full"
             onClick={() => { window.location.href = getLoginUrl(); }}
           >
-            使用 Manus 账号登录
+            使用 Google 帳號登入
           </Button>
         </div>
       </div>

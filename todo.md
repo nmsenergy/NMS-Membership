@@ -260,3 +260,11 @@
 - [x] Update Login page with "Forgot Password?" link
 - [x] Write comprehensive password reset flow tests (72 tests total, all passing)
 - [x] Test end-to-end: request reset -> verify email -> reset password -> login with new password
+
+
+## Login Page Redesign (Completed)
+- [x] Simplify Login.tsx to remove OAuth toggle logic
+- [x] Implement tab-based design (Password Login / Google Login)
+- [x] Update Home.tsx to show "Use Password Login" and "Use Google Account Login" options
+- [x] Verify Google OAuth integration via Manus platform
+- [x] Build and verify no errors
