@@ -1734,7 +1734,11 @@ const adminRouter = router({
           failed.push({ row, reason: errorMsg });
         }
       }
-      return { created, failed, total: rows.length };
+      return { 
+        created, 
+        failed: failed || [], 
+        total: rows.length 
+      };
     }),
   downloadTemplate: adminProcedure.mutation(async () => {
     const XLSX = await import("xlsx");
