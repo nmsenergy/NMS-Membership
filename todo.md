@@ -275,3 +275,12 @@
 - [x] Add hint in VipZone.tsx showing "Max 2 products for birthday discount"
 - [x] Verify backend validation enforces the limit
 - [x] Build and verify no errors
+
+
+## User Identity System (Completed)
+- [x] Add regional_manager_config table for managing regional manager permissions
+- [x] Implement getUserIdentity() function to determine user role (admin/regional_manager/member)
+- [x] Implement getRegionalManagerLocations() to get allowed shipping locations
+- [x] Implement getOrdersForRegionalManager() to filter orders by allowed locations
+- [x] Update admin.orders procedure to use regional manager filtering
+- [x] Verify build success with all changes

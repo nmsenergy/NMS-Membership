@@ -392,3 +392,19 @@ export const passwordResetTokens = mysqlTable("password_reset_tokens", {
 
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;
+
+
+// ─── Regional Manager Configuration ────────────────────────────────────────────
+// Map regional managers to their allowed shipping locations
+export const regionalManagerConfig = mysqlTable("regional_manager_config", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(), // FK → users.id (must have role='regional_manager')
+  allowedLocations: varchar("allowedLocations", { length: 255 }).notNull(), // JSON array of shipping locations, e.g. ["KK_AGENT","PUCHONG_HQ"]
+  description: text("description"), // Optional description for this regional manager
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type RegionalManagerConfig = typeof regionalManagerConfig.$inferSelect;
+export type InsertRegionalManagerConfig = typeof regionalManagerConfig.$inferInsert;

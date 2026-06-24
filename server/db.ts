@@ -18,6 +18,7 @@ import {
   withdrawals,
   rewardVisibility,
   loginHistory,
+  regionalManagerConfig,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { nanoid } from "nanoid";
@@ -823,4 +824,105 @@ export async function sendBulkNotification(memberIds: number[], data: {
   }));
 
   await db.insert(notifications).values(notificationRecords);
+}
+
+
+// ─── Regional Manager Configuration ────────────────────────────────────────────
+
+export async function getRegionalManagerConfig(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db
+    .select()
+    .from(regionalManagerConfig)
+    .where(eq(regionalManagerConfig.userId, userId))
+    .limit(1);
+  return result[0] || null;
+}
+
+export async function setRegionalManagerConfig(
+  userId: number,
+  allowedLocations: string[],
+  description?: string
+) {
+  const db = await getDb();
+  if (!db) return;
+  
+  const locationsJson = JSON.stringify(allowedLocations);
+  const existing = await getRegionalManagerConfig(userId);
+  
+  if (existing) {
+    await db
+      .update(regionalManagerConfig)
+      .set({
+        allowedLocations: locationsJson,
+        description,
+        updatedAt: new Date(),
+      })
+      .where(eq(regionalManagerConfig.userId, userId));
+  } else {
+    await db.insert(regionalManagerConfig).values({
+      userId,
+      allowedLocations: locationsJson,
+      description,
+      isActive: true,
+    });
+  }
+}
+
+// ─── User Role Determination ──────────────────────────────────────────────────
+
+export type UserIdentity = "admin" | "regional_manager" | "member";
+
+export async function getUserIdentity(userId: number): Promise<UserIdentity> {
+  const db = await getDb();
+  if (!db) return "member";
+  
+  const user = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  
+  if (!user[0]) return "member";
+  
+  const userRole = user[0].role;
+  if (userRole === "admin") return "admin";
+  if (userRole === "regional_manager") return "regional_manager";
+  return "member";
+}
+
+// Get allowed shipping locations for a regional manager
+export async function getRegionalManagerLocations(userId: number): Promise<string[]> {
+  const config = await getRegionalManagerConfig(userId);
+  if (!config || !config.allowedLocations) return [];
+  try {
+    return JSON.parse(config.allowedLocations);
+  } catch {
+    return [];
+  }
+}
+
+
+// Get orders filtered by regional manager's allowed shipping locations
+export async function getOrdersForRegionalManager(
+  userId: number,
+  filters?: { from?: Date; to?: Date; status?: string }
+) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const allowedLocations = await getRegionalManagerLocations(userId);
+  if (allowedLocations.length === 0) return [];
+  
+  const conditions = [inArray(orders.shippingLocation, allowedLocations as any)];
+  if (filters?.from) conditions.push(gte(orders.createdAt, filters.from));
+  if (filters?.to) conditions.push(lte(orders.createdAt, filters.to));
+  if (filters?.status) conditions.push(eq(orders.status, filters.status as any));
+  
+  return db
+    .select()
+    .from(orders)
+    .where(and(...conditions))
+    .orderBy(desc(orders.createdAt));
 }

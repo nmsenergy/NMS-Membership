@@ -48,6 +48,8 @@ import {
   setSetting,
   updateMember,
   updateOrderStatus,
+  getUserIdentity,
+  getOrdersForRegionalManager,
   updateTopupStatus,
   createNotification,
   getMemberNotifications,
@@ -1167,8 +1169,11 @@ const adminRouter = router({
   // Orders with pagination
   orders: adminProcedure
     .input(z.object({ status: z.string().optional(), search: z.string().optional(), page: z.number().default(1), limit: z.number().default(20) }))
-    .query(async ({ input }) => {
-      const all = await getAllOrders({ status: input.status as any });
+    .query(async ({ input, ctx }) => {
+      const identity = await getUserIdentity(ctx.user.id);
+      const all = identity === "regional_manager"
+        ? await getOrdersForRegionalManager(ctx.user.id, { status: input.status as any })
+        : await getAllOrders({ status: input.status as any });
       let filtered = all;
       if (input.search) {
         const s = input.search.toLowerCase();
