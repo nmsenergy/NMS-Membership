@@ -89,11 +89,63 @@ export default function AdminImport() {
       const arrayBuffer = await file.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer, { type: "array" });
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json<ImportRow>(worksheet);
+      const rawData = XLSX.utils.sheet_to_json<Record<string, string>>(worksheet);
+
+      // Normalize field names: support both Chinese and English column headers
+      const fieldMap: Record<string, keyof ImportRow> = {
+        // Chinese headers
+        '姓名': '姓名',
+        '电邮地址': '电邮地址',
+        '国家': '国家',
+        '州属': '州属',
+        '邮区编号': '邮区编号',
+        '城市': '城市',
+        '推荐人': '推荐人',
+        // English headers
+        'Name': '姓名',
+        'Email': '电邮地址',
+        'Country': '国家',
+        'Country / Region': '国家',
+        'State': '州属',
+        'Region': '州属',
+        'Postal Code': '邮区编号',
+        'City': '城市',
+        'Referrer': '推荐人',
+        'Referrer Name': '推荐人',
+        'Referral': '推荐人',
+      };
+
+      const data: ImportRow[] = rawData.map(row => {
+        const normalized: Partial<ImportRow> = {};
+        for (const [key, value] of Object.entries(row)) {
+          const mappedKey = fieldMap[key.trim()];
+          if (mappedKey) {
+            normalized[mappedKey] = String(value ?? '').trim();
+          }
+        }
+        return {
+          姓名: normalized.姓名 ?? '',
+          电邮地址: normalized.电邮地址 ?? '',
+          国家: normalized.国家,
+          州属: normalized.州属,
+          邮区编号: normalized.邮区编号,
+          城市: normalized.城市,
+          推荐人: normalized.推荐人 ?? '',
+        };
+      }).filter(row => row.姓名 || row.电邮地址); // skip empty rows
+
+      if (data.length === 0) {
+        toast.error('未找到有效数据，请检查文件格式和列标题');
+        setImportStep('select');
+        return;
+      }
+
       setImportData(data);
       setValidationErrors([]);
+      toast.success(`成功读取 ${data.length} 行数据`);
     } catch (error) {
-      toast.error("读取Excel文件失败");
+      console.error('读取Excel文件失败:', error);
+      toast.error("读取Excel文件失败，请检查文件格式");
       setImportStep("select");
     }
   };
@@ -159,17 +211,26 @@ export default function AdminImport() {
     const toastId = toast.loading(`正在导入 ${importData.length} 条会员记录...`);
     
     try {
+      // Helper: escape CSV field (wrap in quotes if contains comma, quote, or newline)
+      const escapeCSV = (val: string) => {
+        if (!val) return '';
+        if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+          return '"' + val.replace(/"/g, '""') + '"';
+        }
+        return val;
+      };
+
       // Convert ImportRow[] to CSV string format
       const csvLines = ["姓名,电邮地址,国家,州属,邮区编号,城市,推荐人"];
       importData.forEach(row => {
         const line = [
-          row.姓名,
-          row.电邮地址,
-          row.国家 || "",
-          row.州属 || "",
-          row.邮区编号 || "",
-          row.城市 || "",
-          row.推荐人,
+          escapeCSV(row.姓名),
+          escapeCSV(row.电邮地址),
+          escapeCSV(row.国家 || ""),
+          escapeCSV(row.州属 || ""),
+          escapeCSV(row.邮区编号 || ""),
+          escapeCSV(row.城市 || ""),
+          escapeCSV(row.推荐人),
         ].join(",");
         csvLines.push(line);
       });

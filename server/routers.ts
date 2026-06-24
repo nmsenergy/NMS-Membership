@@ -1620,7 +1620,7 @@ const adminRouter = router({
     .input(z.object({ csvData: z.string() }))
     .mutation(async ({ input }) => {
       const lines = input.csvData.trim().split('\n');
-      if (lines.length < 2) return { created: 0 };
+      if (lines.length < 2) return { created: 0, failed: [], total: 0 };
       
       // Parse header to detect format (Chinese or English)
       const headerLine = lines[0];
@@ -1694,21 +1694,31 @@ const adminRouter = router({
       }
       
       let created = 0;
-      const failed = [];
+      const failed: Array<{ row: { 姓名: string; 电邮地址: string; 推荐人: string; 国家?: string; 州属?: string; 邮区编号?: string; 城市?: string }; reason: string }> = [];
       
       for (const row of rows) {
+        // Build a normalized row object for error reporting (matches ImportRow shape)
+        const importRow = {
+          姓名: row.name,
+          电邮地址: row.email,
+          推荐人: row.referrerName,
+          国家: row.country,
+          州属: row.state,
+          邮区编号: row.postalCode,
+          城市: row.city,
+        };
         try {
           // Generate openId from email
           const openId = `email_${row.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
           await upsertUser({ openId, name: row.name, email: row.email });
           const user = await getUserByOpenId(openId);
           if (!user) {
-            failed.push({ row, reason: '無法創建用戶帳戶' });
+            failed.push({ row: importRow, reason: '無法創建用戶帳戶' });
             continue;
           }
           const existing = await getMemberByUserId(user.id);
           if (existing) {
-            failed.push({ row, reason: '會員已存在' });
+            failed.push({ row: importRow, reason: '會員已存在' });
             continue;
           }
           
@@ -1717,7 +1727,7 @@ const adminRouter = router({
           if (row.referrerName && row.referrerName.trim()) {
             referrerId = referrerMap.get(row.referrerName);
             if (!referrerId) {
-              failed.push({ row, reason: `推薦人 "${row.referrerName}" 不存在` });
+              failed.push({ row: importRow, reason: `推荐人 "${row.referrerName}" 不存在` });
               continue;
             }
           }
@@ -1743,12 +1753,12 @@ const adminRouter = router({
         } catch (e) {
           const errorMsg = e instanceof Error ? e.message : '未知錯誤';
           console.error('Import error for', row.name, e);
-          failed.push({ row, reason: errorMsg });
+          failed.push({ row: importRow, reason: errorMsg });
         }
       }
       return { 
         created, 
-        failed: failed || [], 
+        failed, 
         total: rows.length 
       };
     }),
