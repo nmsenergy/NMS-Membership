@@ -141,8 +141,10 @@ export default function AdminMembers() {
 
   const handleDownloadTemplate = () => {
     const headers = ['姓名', '邮箱', '推荐码', '手机', '生日'];
-    const csv = [headers.join(',')].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const csv = headers.join(',') + '\n';
+    // Use BOM for UTF-8 to ensure proper encoding in Excel
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+    const blob = new Blob([bom, new TextEncoder().encode(csv)], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
