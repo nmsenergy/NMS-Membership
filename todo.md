@@ -342,3 +342,12 @@
 - [x] Implement updateMemberDetails function in db.ts
 - [x] Add deleteMember and updateOrder tRPC procedures
 - [x] Verify build success
+
+
+## Product Discount Management (Completed)
+- [x] Add isDiscount field to products table
+- [x] Implement API procedures for marking/unmarking discount products (discountProducts, toggleDiscount)
+- [x] Add discount toggle UI to product management page
+- [x] Display discount badge on product cards (red "优惠产品" badge)
+- [x] Test discount product filtering and display
+- [x] Verify build success

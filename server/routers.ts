@@ -83,9 +83,10 @@ import {
   orderItems,
   users,
   vipPaymentCodes,
-  featureVisibility as featureVisibilityTable,
+  featureVisibility,
   loginHistory,
   regionalManagerConfig,
+  products,
 } from "../drizzle/schema";
 import { eq, gte, lte, and, desc } from "drizzle-orm";
 import { getUserByOpenId, getUserById } from "./db";
@@ -564,6 +565,19 @@ const productRouter = router({
     const allProducts = await getProducts("VIP");
     return allProducts.filter((p) => p.birthdayEligible);
   }),
+
+  discountProducts: protectedProcedure.query(async ({ ctx }) => {
+    const allProducts = await getProducts();
+    return allProducts.filter((p) => p.isDiscount);
+  }),
+
+  toggleDiscount: adminProcedure
+    .input(z.object({ productId: z.number(), isDiscount: z.boolean() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB not available");
+      return db.update(products).set({ isDiscount: input.isDiscount }).where(eq(products.id, input.productId));
+    }),
 });
 
 // ─── Order Router ─────────────────────────────────────────────────────────────
@@ -976,7 +990,7 @@ const featureVisibilityRouter = router({
   list: publicProcedure.query(async () => {
     const db = await getDb();
     if (!db) return [];
-    const rows = await db.select().from(featureVisibilityTable);
+    const rows = await db.select().from(featureVisibility);
     return rows.map(r => ({
       ...r,
       allowedRanks: (() => { try { return JSON.parse(r.allowedRanks || '[]'); } catch { return []; } })()
@@ -1590,28 +1604,31 @@ const adminRouter = router({
 
   // Import members from data
   importMembers: adminProcedure
-    .input(
-      z.array(
-        z.object({
-          name: z.string(),
-          phone: z.string().optional(),
-          birthday: z.string().optional(),
-          rank: z.enum(["VIP", "M_AGENT", "SM", "GM", "CEO"]).default("VIP"),
-          referralCode: z.string().optional(),
-          openId: z.string(),
-        })
-      )
-    )
+    .input(z.object({ csvData: z.string() }))
     .mutation(async ({ input }) => {
+      const lines = input.csvData.trim().split('\n');
+      const rows = [];
+      for (let i = 1; i < lines.length; i++) {
+        const parts = lines[i].split(',').map(p => p.trim());
+        if (parts.length < 2) continue;
+        rows.push({
+          name: parts[0],
+          openId: parts[1],
+          referralCode: parts[2],
+          phone: parts[3],
+          birthday: parts[4],
+          rank: 'VIP',
+        });
+      }
       let created = 0;
-      for (const row of input) {
+      for (const row of rows) {
         try {
           await upsertUser({ openId: row.openId, name: row.name });
-          const user = await import("./db").then((m) => m.getUserByOpenId(row.openId));
+          const user = await getUserByOpenId(row.openId);
           if (!user) continue;
           const existing = await getMemberByUserId(user.id);
           if (existing) continue;
-          let referrerId: number | undefined;
+          let referrerId;
           if (row.referralCode) {
             const ref = await getMemberByReferralCode(row.referralCode);
             if (ref) referrerId = ref.id;
@@ -1620,11 +1637,11 @@ const adminRouter = router({
             userId: user.id,
             referralCode: generateReferralCode(),
             referrerId,
-            rank: row.rank,
+            rank: 'VIP',
             phone: row.phone,
             birthday: row.birthday,
             gubenBalance: 0,
-            bonusBalance: "0.00",
+            bonusBalance: '0.00',
             vipPackagesBought: 0,
             directVipReferrals: 0,
             directMAgentReferrals: 0,
@@ -1633,12 +1650,11 @@ const adminRouter = router({
           });
           created++;
         } catch (e) {
-          console.error("Import error for", row.name, e);
+          console.error('Import error for', row.name, e);
         }
       }
       return { created };
     }),
-
   downloadTemplate: adminProcedure.mutation(async () => {
     const XLSX = await import("xlsx");
     const templateData = [
@@ -1897,7 +1913,7 @@ const adminRouter = router({
   getFeatureVisibility: adminProcedure.query(async () => {
     const db = await getDb();
     if (!db) return [];
-    return db.select().from(featureVisibilityTable);
+    return db.select().from(featureVisibility);
   }),
 
   setFeatureVisibility: adminProcedure
@@ -1910,14 +1926,14 @@ const adminRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const allowedRanksStr = JSON.stringify(input.allowedRanks);
-      const existing = await db.select().from(featureVisibilityTable)
-        .where(eq(featureVisibilityTable.featureKey, input.featureKey));
+      const existing = await db.select().from(featureVisibility)
+        .where(eq(featureVisibility.featureKey, input.featureKey));
       if (existing.length > 0) {
-        await db.update(featureVisibilityTable)
+        await db.update(featureVisibility)
           .set({ isEnabled: input.isEnabled, allowedRanks: allowedRanksStr })
-          .where(eq(featureVisibilityTable.featureKey, input.featureKey));
+          .where(eq(featureVisibility.featureKey, input.featureKey));
       } else {
-        await db.insert(featureVisibilityTable).values({
+        await db.insert(featureVisibility).values({
           featureKey: input.featureKey,
           isEnabled: input.isEnabled,
           allowedRanks: allowedRanksStr,

@@ -84,6 +84,7 @@ export const products = mysqlTable("products", {
   // VIP package count (how many VIP packages does buying this count as)
   vipPackageCount: int("vipPackageCount").default(0).notNull(),
   stock: int("stock"), // null = unlimited
+  isDiscount: boolean("isDiscount").default(false).notNull(), // Mark as discount product
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

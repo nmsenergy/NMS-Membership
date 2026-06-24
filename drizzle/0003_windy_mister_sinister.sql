@@ -1,0 +1,1 @@
+ALTER TABLE `products` ADD `isDiscount` boolean DEFAULT false NOT NULL;

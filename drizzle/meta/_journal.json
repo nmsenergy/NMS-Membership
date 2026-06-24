@@ -22,6 +22,13 @@
       "when": 1782297262949,
       "tag": "0002_striped_redwing",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1782298930709,
+      "tag": "0003_windy_mister_sinister",
+      "breakpoints": true
     }
   ]
 }
