@@ -1608,20 +1608,68 @@ const adminRouter = router({
     .input(z.object({ csvData: z.string() }))
     .mutation(async ({ input }) => {
       const lines = input.csvData.trim().split('\n');
+      if (lines.length < 2) return { created: 0 };
+      
+      // Parse header to detect format (Chinese or English)
+      const headerLine = lines[0];
+      const headerParts = headerLine.split(',').map(p => p.trim());
+      
+      // Detect which format is being used
+      const isChinese = headerLine.includes('姓名') || headerLine.includes('电邮地址');
+      const isEnglish = headerLine.includes('Name') || headerLine.includes('Email');
+      
+      if (!isChinese && !isEnglish) {
+        throw new Error('Unrecognized CSV format. Please use either Chinese or English headers.');
+      }
+      
+      // Map headers to column indices
+      let nameIdx, emailIdx, countryIdx, stateIdx, postalCodeIdx, cityIdx, referrerIdx;
+      
+      if (isChinese) {
+        nameIdx = headerParts.findIndex(h => h === '姓名');
+        emailIdx = headerParts.findIndex(h => h === '电邮地址');
+        countryIdx = headerParts.findIndex(h => h === '国家');
+        stateIdx = headerParts.findIndex(h => h === '州属');
+        postalCodeIdx = headerParts.findIndex(h => h === '邮区编号');
+        cityIdx = headerParts.findIndex(h => h === '城市');
+        referrerIdx = headerParts.findIndex(h => h === '推荐人');
+      } else {
+        nameIdx = headerParts.findIndex(h => h === 'Name');
+        emailIdx = headerParts.findIndex(h => h === 'Email');
+        countryIdx = headerParts.findIndex(h => h === 'Country / Region' || h === 'Country');
+        stateIdx = headerParts.findIndex(h => h === 'Region' || h === 'State');
+        postalCodeIdx = headerParts.findIndex(h => h === 'Postal Code');
+        cityIdx = headerParts.findIndex(h => h === 'City');
+        referrerIdx = headerParts.findIndex(h => h === 'Referrer Name');
+      }
+      
+      // Validate required columns
+      if (nameIdx === -1 || emailIdx === -1 || referrerIdx === -1) {
+        throw new Error('Missing required columns: Name/姓名, Email/电邮地址, Referrer Name/推荐人');
+      }
+      
       const rows = [];
       for (let i = 1; i < lines.length; i++) {
         const parts = lines[i].split(',').map(p => p.trim());
-        if (parts.length < 3) continue; // Name, Email, Referrer are minimum
+        if (parts.length < 2) continue;
+        
+        const name = parts[nameIdx] || '';
+        const email = parts[emailIdx] || '';
+        const referrerName = parts[referrerIdx] || '';
+        
+        if (!name || !email || !referrerName) continue;
+        
         rows.push({
-          name: parts[0],
-          email: parts[1],
-          country: parts[2] || undefined,
-          state: parts[3] || undefined,
-          postalCode: parts[4] || undefined,
-          city: parts[5] || undefined,
-          referrerName: parts[6],
+          name,
+          email,
+          country: countryIdx !== -1 ? (parts[countryIdx] || undefined) : undefined,
+          state: stateIdx !== -1 ? (parts[stateIdx] || undefined) : undefined,
+          postalCode: postalCodeIdx !== -1 ? (parts[postalCodeIdx] || undefined) : undefined,
+          city: cityIdx !== -1 ? (parts[cityIdx] || undefined) : undefined,
+          referrerName,
         });
       }
+      
       let created = 0;
       for (const row of rows) {
         try {
@@ -1633,7 +1681,7 @@ const adminRouter = router({
           const existing = await getMemberByUserId(user.id);
           if (existing) continue;
           
-          // Find referrer by name
+          // Find referrer by name (case-insensitive)
           let referrerId;
           if (row.referrerName) {
             const db = await getDb();
@@ -1713,27 +1761,23 @@ const adminRouter = router({
   validateImport: adminProcedure
     .input(
       z.object({
-        data: z.array(
-          z.object({
-            "姓名": z.string(),
-            "电邮地址": z.string(),
-            "国家": z.string().optional(),
-            "州属": z.string().optional(),
-            "邮区编号": z.string().optional(),
-            "城市": z.string().optional(),
-            "推荐人": z.string(),
-          })
-        ),
+        data: z.array(z.record(z.string(), z.any())),
       })
     )
     .mutation(async ({ input }) => {
       const errors: Array<{ row: number; error: string }> = [];
       for (let i = 0; i < input.data.length; i++) {
-        const row = input.data[i];
-        if (!row["姓名"]?.trim()) errors.push({ row: i + 1, error: "姓名不能为空" });
-        if (!row["电邮地址"]?.trim()) errors.push({ row: i + 1, error: "电邮地址不能为空" });
-        if (!row["推荐人"]?.trim()) errors.push({ row: i + 1, error: "推荐人不能为空" });
-        if (row["电邮地址"] && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row["电邮地址"])) errors.push({ row: i + 1, error: "电邮地址格式错误" });
+        const row = input.data[i] as any;
+        
+        // Support both Chinese and English column names
+        const name = row["姓名"] || row["Name"] || "";
+        const email = row["电邮地址"] || row["Email"] || "";
+        const referrer = row["推荐人"] || row["Referrer Name"] || "";
+        
+        if (!name?.trim()) errors.push({ row: i + 1, error: "Name/姓名 cannot be empty" });
+        if (!email?.trim()) errors.push({ row: i + 1, error: "Email/电邮地址 cannot be empty" });
+        if (!referrer?.trim()) errors.push({ row: i + 1, error: "Referrer Name/推荐人 cannot be empty" });
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push({ row: i + 1, error: "Invalid email format" });
       }
       return { valid: errors.length === 0, errors, totalRows: input.data.length };
     }),
