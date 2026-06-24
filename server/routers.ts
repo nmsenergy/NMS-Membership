@@ -2033,6 +2033,51 @@ const adminRouter = router({
       return db.select().from(users).where(eq(users.role, "regional_manager"));
     }),
 
+
+  // Bulk update regional managers
+  bulkUpdateRegionalManagers: adminProcedure
+    .input(z.object({
+      userIds: z.array(z.number()),
+      allowedLocations: z.array(z.string()),
+      description: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB not available");
+      
+      if (input.userIds.length === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Please select at least one manager" });
+      }
+      
+      const locationsJson = JSON.stringify(input.allowedLocations);
+      
+      for (const userId of input.userIds) {
+        const existing = await db.select().from(regionalManagerConfig)
+          .where(eq(regionalManagerConfig.userId, userId));
+        
+        if (existing.length > 0) {
+          await db.update(regionalManagerConfig)
+            .set({
+              allowedLocations: locationsJson,
+              description: input.description,
+              updatedAt: new Date(),
+            })
+            .where(eq(regionalManagerConfig.userId, userId));
+        } else {
+          await db.insert(regionalManagerConfig).values({
+            userId,
+            allowedLocations: locationsJson,
+            description: input.description,
+            isActive: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+        }
+      }
+      
+      return { success: true, count: input.userIds.length };
+    }),
+
 });
 
 // Password change procedure in member router (added separately)

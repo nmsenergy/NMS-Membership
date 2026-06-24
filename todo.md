@@ -294,3 +294,12 @@
 - [x] Support adding/editing/deleting regional managers with allowed locations
 - [x] Display regional manager details (name, email, locations, description)
 - [x] Verify build success with all changes
+
+
+## Regional Manager Bulk Operations (Completed)
+- [x] Implement bulkUpdateRegionalManagers API procedure
+- [x] Add checkboxes for regional manager selection
+- [x] Add bulk operation toolbar with select/deselect all buttons
+- [x] Implement batch configuration dialog with location and description fields
+- [x] Test bulk operations with multiple managers
+- [x] Verify build success with all changes
