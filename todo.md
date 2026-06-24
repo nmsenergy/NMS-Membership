@@ -168,3 +168,12 @@
 - [x] Implement VIP code generation when order status changes to DELIVERED
 - [x] VIP code generation on order delivery (11 comprehensive tests)
 - [x] Test agent order with shipping location and VIP code generation
+
+
+## Sandbox Unload Permission Fix (Current)
+- [x] Remove all window.location.reload() and window.location.href usage
+- [x] Remove unload/beforeunload event listeners (none found)
+- [x] Create global admin view state context
+- [x] Update App.tsx to use state-based routing
+- [x] Update admin components to use router.push
+- [x] Test SPA routing without unload errors

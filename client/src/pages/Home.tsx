@@ -62,7 +62,7 @@ export default function Home() {
         </div>
         <Button
           className="w-full max-w-xs"
-          onClick={() => (window.location.href = getLoginUrl())}
+          onClick={() => { const [, navigate] = useLocation(); navigate(getLoginUrl()); }}
         >
           登录 / 注册
         </Button>
