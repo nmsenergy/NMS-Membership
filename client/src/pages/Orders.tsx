@@ -5,7 +5,7 @@ import BottomNav from "@/components/BottomNav";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package } from "lucide-react";
+import { Package, Truck } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING_PAYMENT: "bg-yellow-100 text-yellow-700",
@@ -20,6 +20,11 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   ONLINE_TRANSFER: "在线转账",
   OFFLINE_PAYMENT: "线下付款",
   VIP_CODE: "VIP付款码",
+};
+
+const SHIPPING_LOCATION_LABELS: Record<string, string> = {
+  KK_AGENT: "KK代理商",
+  PUCHONG_HQ: "Puchong总部",
 };
 
 export default function Orders() {
@@ -81,6 +86,16 @@ export default function Orders() {
                             </div>
                           </div>
                         ))}
+                      </div>
+                    )}
+
+                    {/* Shipping Location */}
+                    {order.shippingLocation && (
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Truck size={12} className="text-muted-foreground shrink-0" />
+                        <p className="text-xs text-muted-foreground">
+                          出货点: <span className="font-medium text-foreground">{SHIPPING_LOCATION_LABELS[order.shippingLocation] || order.shippingLocation}</span>
+                        </p>
                       </div>
                     )}
 

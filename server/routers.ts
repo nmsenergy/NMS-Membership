@@ -74,6 +74,7 @@ import {
 import { eq, gte, lte, and } from "drizzle-orm";
 import { getUserByOpenId, getUserById } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
+import { storagePut, storageDelete } from "./storage";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 
@@ -271,6 +272,26 @@ const memberRouter = router({
     const option2 = member.directVipReferrals >= 15;
     return { option1Vips: member.directVipReferrals, option1Met: option1, option2Met: option2 };
   }),
+
+  // Upload birthday ID photo for verification
+  uploadBirthdayIdPhoto: protectedProcedure
+    .input(z.object({
+      fileBase64: z.string(), // base64-encoded file content
+      mimeType: z.string().default("image/jpeg"),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const member = await getMemberByUserId(ctx.user.id);
+      if (!member) throw new TRPCError({ code: "NOT_FOUND" });
+      if (member.birthdayVerified) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "生日已经认证，无需再次上传" });
+      }
+      const buffer = Buffer.from(input.fileBase64, "base64");
+      const ext = input.mimeType.split("/")[1] || "jpg";
+      const key = `birthday-id/${member.id}-${Date.now()}.${ext}`;
+      const { url } = await storagePut(key, buffer, input.mimeType);
+      await updateMember(member.id, { birthdayIdPhotoUrl: url });
+      return { url };
+    }),
 });
 
 // ─── Product Router ───────────────────────────────────────────────────────────
@@ -841,6 +862,66 @@ const adminRouter = router({
         });
       }
       return getMemberById(id);
+    }),
+
+  // Verify birthday and optionally delete ID photo, then notify member
+  verifyBirthday: adminProcedure
+    .input(z.object({
+      memberId: z.number(),
+      deletePhoto: z.boolean().default(true),
+    }))
+    .mutation(async ({ input }) => {
+      const member = await getMemberById(input.memberId);
+      if (!member) throw new TRPCError({ code: "NOT_FOUND" });
+
+      // Mark as verified and clear photo URL
+      const updateData: any = { birthdayVerified: true };
+      if (input.deletePhoto) {
+        // Attempt to delete from storage if we have a URL
+        if (member.birthdayIdPhotoUrl) {
+          try {
+            // Extract key from URL (last path segment after /birthday-id/)
+            const urlObj = new URL(member.birthdayIdPhotoUrl);
+            const key = urlObj.pathname.replace(/^\//, "");
+            await storageDelete(key);
+          } catch (e) {
+            // Log but don't fail the verification if delete fails
+            console.error("Failed to delete birthday ID photo:", e);
+          }
+        }
+        updateData.birthdayIdPhotoUrl = null;
+      }
+      await updateMember(input.memberId, updateData);
+
+      // Send notification to member
+      await createNotification({
+        memberId: input.memberId,
+        title: "生日认证已完成",
+        content: "恭喜！您的生日身份已经认证成功。" + (input.deletePhoto ? "您之前上传的身份证照片已经安全删除，您可以放心。" : "") + "现在您可以使用生日优惠功能了！",
+        type: "SYSTEM",
+        actionUrl: "/vip",
+      });
+
+      return { success: true };
+    }),
+
+  // Admin delete birthday ID photo without verifying
+  deleteBirthdayIdPhoto: adminProcedure
+    .input(z.object({ memberId: z.number() }))
+    .mutation(async ({ input }) => {
+      const member = await getMemberById(input.memberId);
+      if (!member) throw new TRPCError({ code: "NOT_FOUND" });
+      if (member.birthdayIdPhotoUrl) {
+        try {
+          const urlObj = new URL(member.birthdayIdPhotoUrl);
+          const key = urlObj.pathname.replace(/^\//, "");
+          await storageDelete(key);
+        } catch (e) {
+          console.error("Failed to delete birthday ID photo:", e);
+        }
+      }
+      await updateMember(input.memberId, { birthdayIdPhotoUrl: null } as any);
+      return { success: true };
     }),
 
   // Orders with pagination
@@ -1504,6 +1585,63 @@ const adminRouter = router({
         });
       }
       return { success: true };
+    }),
+
+  // Export top-ups
+  exportTopups: adminProcedure
+    .input(z.object({ dateFrom: z.string().optional(), dateTo: z.string().optional() }).optional())
+    .mutation(async ({ input }) => {
+      const XLSX = await import("xlsx");
+      const from = input?.dateFrom ? new Date(input.dateFrom) : undefined;
+      const to = input?.dateTo ? new Date(input.dateTo) : undefined;
+      const allTopups = await getAllTopups(from, to);
+      const allMembers = await getAllMembers();
+      const memberMap = new Map(allMembers.map(({ member, user }) => [member.id, user?.name ?? "Unknown"]));
+      const rows = allTopups.map((t) => ({
+        ID: t.id,
+        会员名字: memberMap.get(t.memberId) ?? "Unknown",
+        类型: t.type === "CASH" ? "现金充值" : "奖金转换",
+        充值金额: t.amount,
+        固本积分: t.gubenPoints,
+        状态: t.status === "PENDING" ? "待审核" : t.status === "APPROVED" ? "已批准" : "已拒绝",
+        备注: t.adminNote ?? "",
+        时间: t.createdAt.toISOString().split("T")[0],
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "TopUps");
+      const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+      const base64 = Buffer.from(buf as any).toString("base64");
+      return { base64 };
+    }),
+
+  // Export withdrawals
+  exportWithdrawals: adminProcedure
+    .input(z.object({ dateFrom: z.string().optional(), dateTo: z.string().optional() }).optional())
+    .mutation(async ({ input }) => {
+      const XLSX = await import("xlsx");
+      const from = input?.dateFrom ? new Date(input.dateFrom) : undefined;
+      const to = input?.dateTo ? new Date(input.dateTo) : undefined;
+      const allWithdrawals = await getAllWithdrawals(from, to);
+      const allMembers = await getAllMembers();
+      const memberMap = new Map(allMembers.map(({ member, user }) => [member.id, user?.name ?? "Unknown"]));
+      const rows = allWithdrawals.map((w) => ({
+        ID: w.id,
+        会员名字: memberMap.get(w.memberId) ?? "Unknown",
+        提现金额: w.amount,
+        银行名称: w.bankName ?? "",
+        银行账号: w.bankAccount ?? "",
+        账户持有人: w.accountHolder ?? "",
+        状态: w.status === "PENDING" ? "待审核" : w.status === "APPROVED" ? "已批准" : w.status === "PAID" ? "已转账" : "已拒绝",
+        备注: w.adminNote ?? "",
+        时间: w.createdAt.toISOString().split("T")[0],
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Withdrawals");
+      const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+      const base64 = Buffer.from(buf as any).toString("base64");
+      return { base64 };
     }),
 
 });

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { formatRM, formatDate, formatDateTime, RANK_LABELS, BONUS_TYPE_LABELS, ORDER_STATUS_LABELS, ORDER_TYPE_LABELS, isSMOrAbove, isAgentOrAbove } from "@/lib/utils";
@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
-import { LogOut, Copy, Settings, ChevronRight, Edit } from "lucide-react";
+import { LogOut, Copy, Settings, ChevronRight, Edit, Upload, CheckCircle, Clock } from "lucide-react";
 
 export default function Profile() {
   const { user, logout } = useAuth();
@@ -28,7 +28,9 @@ export default function Profile() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editName, setEditName] = useState(user?.name || "");
   const [editPhone, setEditPhone] = useState(member?.phone || "");
-  
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const updateProfile = trpc.member.updateProfile.useMutation({
     onSuccess: () => {
       toast.success("个人信息已更新");
@@ -37,6 +39,40 @@ export default function Profile() {
     },
     onError: (e) => toast.error(e.message),
   });
+
+  const uploadBirthdayIdPhoto = trpc.member.uploadBirthdayIdPhoto.useMutation({
+    onSuccess: () => {
+      toast.success("身份证照片已上传，请等待管理员审核");
+      utils.auth.me.invalidate();
+      setUploadingPhoto(false);
+    },
+    onError: (e) => {
+      toast.error(e.message);
+      setUploadingPhoto(false);
+    },
+  });
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("文件大小不能超过 5MB");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("请上传图片文件");
+      return;
+    }
+    setUploadingPhoto(true);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      const base64 = dataUrl.split(",")[1];
+      uploadBirthdayIdPhoto.mutate({ fileBase64: base64, mimeType: file.type });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
 
   if (!user || !member) return (
     <div className="mobile-app flex items-center justify-center min-h-screen">
@@ -48,6 +84,8 @@ export default function Profile() {
   const handleSaveProfile = () => {
     updateProfile.mutate({ name: editName, phone: editPhone });
   };
+
+  const isAdminOrManager = (user as any)?.role === "admin" || (user as any)?.role === "regional_manager";
 
   return (
     <div className="mobile-app pb-20">
@@ -90,7 +128,6 @@ export default function Profile() {
           </div>
         </div>
       </div>
-
       <div className="px-4 mt-4">
         <Tabs defaultValue="guben">
           <TabsList className="w-full grid grid-cols-3">
@@ -98,7 +135,6 @@ export default function Profile() {
             <TabsTrigger value="bonus">奖金记录</TabsTrigger>
             <TabsTrigger value="info">个人信息</TabsTrigger>
           </TabsList>
-
           <TabsContent value="guben" className="mt-3 space-y-2">
             {yearEnd && yearEnd.rate > 0 && (
               <Card className="p-4 rounded-xl border-0 bg-amber-50">
@@ -123,7 +159,6 @@ export default function Profile() {
               </Card>
             ))}
           </TabsContent>
-
           <TabsContent value="bonus" className="mt-3 space-y-2">
             {(!bonusLedger || bonusLedger.length === 0) ? (
               <p className="text-center text-muted-foreground text-sm py-8">暂无奖金记录</p>
@@ -142,7 +177,6 @@ export default function Profile() {
               </Card>
             ))}
           </TabsContent>
-
           <TabsContent value="info" className="mt-3 space-y-3">
             <Card className="p-4 rounded-xl border-0">
               <div className="space-y-3">
@@ -151,7 +185,6 @@ export default function Profile() {
                   { label: "邮箱", value: user.email },
                   { label: "手机", value: member.phone || "-" },
                   { label: "生日", value: member.birthday || "-" },
-                  { label: "身份认证", value: member.birthdayVerified ? "已认证" : "未认证" },
                   { label: "注册时间", value: formatDate(member.createdAt) },
                   { label: "VIP配套数", value: `${member.vipPackagesBought} 套` },
                   { label: "直推M代理", value: `${member.directMAgentReferrals} 人` },
@@ -163,7 +196,57 @@ export default function Profile() {
                 ))}
               </div>
             </Card>
-            {(user as any)?.role === "admin" && (
+
+            {/* Birthday Verification Section */}
+            <Card className="p-4 rounded-xl border-0">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold">生日身份认证</p>
+                {member.birthdayVerified ? (
+                  <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                    <CheckCircle size={14} /> 已认证
+                  </span>
+                ) : member.birthdayIdPhotoUrl ? (
+                  <span className="flex items-center gap-1 text-xs text-amber-600 font-medium">
+                    <Clock size={14} /> 审核中
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">未认证</span>
+                )}
+              </div>
+              {member.birthdayVerified ? (
+                <p className="text-xs text-muted-foreground">您的生日身份已认证，可以使用生日优惠功能。</p>
+              ) : member.birthdayIdPhotoUrl ? (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">您的身份证照片已上传，正在等待管理员审核。审核完成后，照片将被安全删除，您将收到通知。</p>
+                  <div className="rounded-lg overflow-hidden border border-border/50 max-h-32">
+                    <img src={member.birthdayIdPhotoUrl} alt="身份证照片" className="w-full object-contain max-h-32" />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">请上传您的身份证照片以完成生日认证，认证后可使用生日优惠功能。照片仅用于身份核实，认证完成后将被安全删除。</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingPhoto || uploadBirthdayIdPhoto.isPending}
+                  >
+                    <Upload size={14} className="mr-2" />
+                    {uploadingPhoto || uploadBirthdayIdPhoto.isPending ? "上传中..." : "上传身份证照片"}
+                  </Button>
+                </div>
+              )}
+            </Card>
+
+            {isAdminOrManager && (
               <Button variant="outline" className="w-full" onClick={() => navigate("/admin")}>
                 进入管理后台
               </Button>
@@ -171,7 +254,6 @@ export default function Profile() {
           </TabsContent>
         </Tabs>
       </div>
-
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="max-w-sm mx-auto">
           <DialogHeader>
@@ -193,7 +275,6 @@ export default function Profile() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       <BottomNav />
     </div>
   );

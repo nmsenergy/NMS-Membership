@@ -66,6 +66,16 @@ export default function AdminMembers() {
     onError: (e) => toast.error(e.message),
   });
 
+  const verifyBirthday = trpc.admin.verifyBirthday.useMutation({
+    onSuccess: () => { toast.success("生日认证已完成，已通知会员"); utils.admin.members.invalidate(); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const deleteBirthdayPhoto = trpc.admin.deleteBirthdayIdPhoto.useMutation({
+    onSuccess: () => { toast.success("身份证照片已删除"); utils.admin.members.invalidate(); },
+    onError: (e) => toast.error(e.message),
+  });
+
   const exportExcel = trpc.admin.exportMembers.useMutation({
     onSuccess: (data) => {
       const binaryString = atob(data.base64);
@@ -244,7 +254,7 @@ export default function AdminMembers() {
                           </div>
                           <div>
                             <span className="text-muted-foreground">生日认证: </span>
-                            <span>{m.birthdayVerified ? "✅ 已认证" : "❌ 未认证"}</span>
+                            <span>{m.birthdayVerified ? "✅ 已认证" : m.birthdayIdPhotoUrl ? "⏳ 待审核" : "❌ 未认证"}</span>
                           </div>
                           <div>
                             <span className="text-muted-foreground">状态: </span>
@@ -294,6 +304,34 @@ export default function AdminMembers() {
                           </div>
                         </div>
                       </div>
+
+                      {/* Birthday ID Photo */}
+                      {m.birthdayIdPhotoUrl && (
+                        <div>
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">生日身份证照片</p>
+                          <a href={m.birthdayIdPhotoUrl} target="_blank" rel="noopener noreferrer">
+                            <img src={m.birthdayIdPhotoUrl} alt="身份证" className="w-full rounded-lg border max-h-32 object-contain" />
+                          </a>
+                          <div className="flex gap-2 mt-2">
+                            {!m.birthdayVerified && (
+                              <button
+                                className="flex-1 text-xs bg-green-600 text-white rounded-lg py-1.5 hover:bg-green-700"
+                                onClick={(e) => { e.stopPropagation(); verifyBirthday.mutate({ memberId: m.id, deletePhoto: true }); }}
+                                disabled={verifyBirthday.isPending}
+                              >
+                                ✅ 认证并删除照片
+                              </button>
+                            )}
+                            <button
+                              className="flex-1 text-xs bg-red-100 text-red-600 rounded-lg py-1.5 hover:bg-red-200"
+                              onClick={(e) => { e.stopPropagation(); deleteBirthdayPhoto.mutate({ memberId: m.id }); }}
+                              disabled={deleteBirthdayPhoto.isPending}
+                            >
+                              🗑️ 仅删除照片
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Timestamps */}
                       <div>

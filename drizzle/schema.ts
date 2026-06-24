@@ -39,6 +39,7 @@ export const members = mysqlTable("members", {
   phone: varchar("phone", { length: 32 }),
   birthday: varchar("birthday", { length: 10 }), // YYYY-MM-DD stored as string
   birthdayVerified: boolean("birthdayVerified").default(false).notNull(),
+  birthdayIdPhotoUrl: text("birthdayIdPhotoUrl"), // URL of uploaded ID photo for verification
   isActive: boolean("isActive").default(true).notNull(),
   // Bonus balances (stored as integers in sen/points to avoid float issues)
   gubenBalance: int("gubenBalance").default(0).notNull(), // 固本 points (1 point = RM1)

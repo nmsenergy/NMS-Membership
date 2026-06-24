@@ -159,8 +159,8 @@
 - [x] Add shipping location field to orders table (KK Agent or Puchong HQ)
 - [x] Update VIP order creation API to accept shipping location
 - [x] Add location selector to VIP order creation UI
-- [ ] Display shipping location in order details
-- [ ] Add shipping location to order exports (Excel)
+- [x] Display shipping location in order details
+- [x] Add shipping location to order exports (Excel)
 
 ## Agent Order Shipping Location & VIP Code Generation (Current)
 - [x] Add shipping location support to agent order creation
@@ -184,3 +184,9 @@
 - [x] Remove AdminCalculationBase from App.tsx routing
 - [x] Add calculation base reference section to AdminBonuses (collapsible, with product selector)
 - [x] AdminProducts already has full calculation base management (Settings button per product)
+
+## New Features (Current Session)
+- [x] Display shipping location in order details (member-facing Orders page + admin AdminOrders page)
+- [x] Add shipping location column to order Excel export
+- [x] Add top-up/withdrawal Excel export in AdminTopups page
+- [x] Birthday verification workflow: member uploads ID photo, admin can verify and delete photo, notify member after verification

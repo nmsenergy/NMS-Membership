@@ -36,6 +36,13 @@
       "when": 1782099982716,
       "tag": "0004_smiling_star_brand",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1782276584524,
+      "tag": "0005_pink_nightshade",
+      "breakpoints": true
     }
   ]
 }
