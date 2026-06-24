@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Edit, Trash2, MapPin, Mail, User, CheckSquare, Square } from "lucide-react";
+import { Plus, Edit, Trash2, MapPin, Mail, User, CheckSquare, Square, Download, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 const SHIPPING_LOCATIONS = ["KK_AGENT", "PUCHONG_HQ"];
@@ -23,6 +23,9 @@ export default function AdminRegionalManagers() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkLocations, setBulkLocations] = useState<string[]>([]);
   const [bulkDescription, setBulkDescription] = useState("");
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPreview, setImportPreview] = useState<any[]>([]);
 
   const { data: managers, isLoading, refetch } = trpc.admin.regionalManagers.useQuery();
   const { data: candidates } = trpc.admin.regionalManagerCandidates.useQuery();
@@ -54,6 +57,20 @@ export default function AdminRegionalManagers() {
     onError: (e) => toast.error(e.message),
   });
 
+  const importMutation = trpc.admin.importRegionalManagersFromCSV.useMutation({
+    onSuccess: (data) => {
+      toast.success(`已導入 ${data.created} 個新代理商，更新 ${data.updated} 個`);
+      if (data.errors.length > 0) {
+        toast.error(`有 ${data.errors.length} 個錯誤`);
+      }
+      setShowImportDialog(false);
+      setImportFile(null);
+      setImportPreview([]);
+      utils.admin.regionalManagers.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const bulkUpdateMutation = trpc.admin.bulkUpdateRegionalManagers.useMutation({
     onSuccess: (data) => {
       toast.success(`已批量更新 ${data.count} 個代理商`);
@@ -65,6 +82,71 @@ export default function AdminRegionalManagers() {
     },
     onError: (e) => toast.error(e.message),
   });
+
+  
+  const handleExport = () => {
+    if (!managers || managers.length === 0) {
+      toast.error("沒有數據可導出");
+      return;
+    }
+
+    const csvData = [
+      ['Email', 'Locations', 'Description'],
+      ...managers.map((m: any) => [
+        m.userEmail,
+        JSON.parse(m.allowedLocations || "[]").join(', '),
+        m.description || '',
+      ]),
+    ];
+
+    const csvContent = csvData.map(row => 
+      row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `regional-managers-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("已導出 CSV 文件");
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportFile(file);
+    const text = await file.text();
+    const lines = text.split('\n').filter(l => l.trim());
+    
+    if (lines.length < 2) {
+      toast.error("CSV 文件格式不正確");
+      return;
+    }
+
+    const rows = lines.slice(1).map(line => {
+      const cells = line.split(',').map(c => c.replace(/^"|"$/g, ''));
+      return {
+        email: cells[0],
+        locations: cells[1],
+        description: cells[2],
+      };
+    }).filter(r => r.email);
+
+    setImportPreview(rows);
+  };
+
+  const handleConfirmImport = () => {
+    if (importPreview.length === 0) {
+      toast.error("沒有有效的數據");
+      return;
+    }
+    importMutation.mutate(importPreview);
+  };
 
   const resetForm = () => {
     setShowDialog(false);
@@ -168,12 +250,18 @@ export default function AdminRegionalManagers() {
       <div className="p-4 pb-20">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-xl font-bold">區域代理管理</h1>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {selectedIds.size > 0 && (
               <Button onClick={() => setShowBulkDialog(true)} size="sm" variant="secondary" className="gap-2">
                 批量設定 ({selectedIds.size})
               </Button>
             )}
+            <Button onClick={handleExport} size="sm" variant="outline" className="gap-2">
+              <Download size={16} /> 匯出
+            </Button>
+            <Button onClick={() => setShowImportDialog(true)} size="sm" variant="outline" className="gap-2">
+              <Upload size={16} /> 匯入
+            </Button>
             <Button onClick={() => setShowDialog(true)} size="sm" className="gap-2">
               <Plus size={16} /> 新增代理
             </Button>

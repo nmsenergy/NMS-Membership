@@ -2078,6 +2078,70 @@ const adminRouter = router({
       return { success: true, count: input.userIds.length };
     }),
 
+  // Import regional managers from CSV
+  importRegionalManagersFromCSV: adminProcedure
+    .input(z.array(z.object({
+      email: z.string().email(),
+      locations: z.string(), // comma-separated locations
+      description: z.string().optional(),
+    })))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB not available");
+      
+      let created = 0;
+      let updated = 0;
+      const errors: string[] = [];
+      
+      for (const row of input) {
+        try {
+          // Find user by email
+          const user = await db.select().from(users).where(eq(users.email, row.email));
+          if (user.length === 0) {
+            errors.push(`用戶不存在: ${row.email}`);
+            continue;
+          }
+          
+          const userId = user[0].id;
+          const allowedLocations = row.locations.split(',').map(l => l.trim()).filter(l => l);
+          
+          if (allowedLocations.length === 0) {
+            errors.push(`${row.email}: 出貨地點不能為空`);
+            continue;
+          }
+          
+          const locationsJson = JSON.stringify(allowedLocations);
+          const existing = await db.select().from(regionalManagerConfig)
+            .where(eq(regionalManagerConfig.userId, userId));
+          
+          if (existing.length > 0) {
+            await db.update(regionalManagerConfig)
+              .set({
+                allowedLocations: locationsJson,
+                description: row.description,
+                updatedAt: new Date(),
+              })
+              .where(eq(regionalManagerConfig.userId, userId));
+            updated++;
+          } else {
+            await db.insert(regionalManagerConfig).values({
+              userId,
+              allowedLocations: locationsJson,
+              description: row.description,
+              isActive: true,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            });
+            created++;
+          }
+        } catch (e) {
+          errors.push(`${row.email}: ${(e as any).message}`);
+        }
+      }
+      
+      return { created, updated, errors };
+    }),
+
 });
 
 // Password change procedure in member router (added separately)

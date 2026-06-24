@@ -303,3 +303,15 @@
 - [x] Implement batch configuration dialog with location and description fields
 - [x] Test bulk operations with multiple managers
 - [x] Verify build success with all changes
+
+
+## Regional Manager CSV Export/Import (Completed)
+- [x] Implement importRegionalManagersFromCSV API procedure
+- [x] Add export button to AdminRegionalManagers page (CSV format)
+- [x] Add import button to AdminRegionalManagers page
+- [x] Implement handleExport function - exports managers to CSV file
+- [x] Implement handleImportFile function - parses CSV and shows preview
+- [x] Implement handleConfirmImport function - submits import data to API
+- [x] Test CSV export with sample data
+- [x] Test CSV import with validation
+- [x] Verify build success with all changes
