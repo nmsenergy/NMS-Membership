@@ -202,7 +202,7 @@ export default function AdminSettings() {
     {
       title: "生日优惠设置",
       fields: [
-        { key: "birthday_max_products", label: "生日优惠最多产品种类", desc: "默认3种" },
+        { key: "birthday_max_products", label: "生日优惠最多产品种类", desc: "默认2种" },
         { key: "birthday_max_qty_per_product", label: "每种产品最多数量", desc: "默认1件" },
       ],
     },
