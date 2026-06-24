@@ -229,6 +229,13 @@ const memberRouter = router({
       return { success: true };
     }),
 
+  recordLoginHistory: protectedProcedure
+    .input(z.object({ memberId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+      return { success: true, redirectToLogin: true };
+    }),
+
   getLoginHistory: protectedProcedure.query(async ({ ctx }) => {
     if (!ctx.user) return [];
     return [];
