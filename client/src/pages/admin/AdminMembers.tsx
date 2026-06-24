@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { formatDate, RANK_LABELS, formatRM } from "@/lib/utils";
 import MobileHeader from "@/components/MobileHeader";
@@ -28,8 +29,25 @@ export default function AdminMembers() {
   const [editEmail, setEditEmail] = useState("");
   const [editIsActive, setEditIsActive] = useState(true);
   const [editReferrerId, setEditReferrerId] = useState<string>("");
+  const [referrerSearch, setReferrerSearch] = useState("");
+  const [referrerSearchResults, setReferrerSearchResults] = useState<any[]>([]);
+  const [selectedReferrer, setSelectedReferrer] = useState<any>(null);
+  const [showReferrerDropdown, setShowReferrerDropdown] = useState(false);
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+
+  // Referrer search query - only runs when referrerSearch has 2+ chars
+  const { data: referrerData } = trpc.admin.members.useQuery(
+    { search: referrerSearch, page: 1, limit: 10 },
+    { enabled: referrerSearch.length >= 2 }
+  );
+
+  useEffect(() => {
+    if (referrerSearch.length >= 2 && referrerData) {
+      setReferrerSearchResults((referrerData as any)?.members || []);
+      setShowReferrerDropdown(true);
+    }
+  }, [referrerData, referrerSearch]);
 
   const { data, isLoading, refetch } = trpc.admin.members.useQuery({
     search,
@@ -78,6 +96,10 @@ export default function AdminMembers() {
     setEditEmail(m.userEmail || "");
     setEditIsActive(m.isActive !== false);
     setEditReferrerId(m.referrerId ? String(m.referrerId) : "");
+    setSelectedReferrer(m.referrerId ? { id: m.referrerId, name: m.referrerName } : null);
+    setReferrerSearch("");
+    setReferrerSearchResults([]);
+    setShowReferrerDropdown(false);
   };
 
   const toggleExpand = (id: number) => {
@@ -366,16 +388,69 @@ export default function AdminMembers() {
 
             {/* Referrer Change */}
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pt-1">更换推荐人</p>
-            <div>
-              <Label>推荐人会员ID</Label>
-              <Input
-                type="number"
-                value={editReferrerId}
-                onChange={(e) => setEditReferrerId(e.target.value)}
-                className="mt-1.5"
-                placeholder="输入推荐人的会员ID（留空保持不变）"
-              />
-              <p className="text-xs text-muted-foreground mt-1">当前推荐人: {editMember?.referrerName || "无"} (ID: {editMember?.referrerId || "—"})</p>
+            <div className="relative">
+              <Label>搜索推荐人姓名</Label>
+              <div className="relative mt-1.5">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={referrerSearch}
+                  onChange={(e) => {
+                    setReferrerSearch(e.target.value);
+                    if (!e.target.value) {
+                      setShowReferrerDropdown(false);
+                      setReferrerSearchResults([]);
+                    }
+                  }}
+                  className="pl-8"
+                  placeholder="输入姓名搜索（至少2个字符）"
+                />
+              </div>
+              {/* Search results dropdown */}
+              {showReferrerDropdown && referrerSearchResults.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                  {referrerSearchResults
+                    .filter((r: any) => r.id !== editMember?.id)
+                    .map((r: any) => (
+                      <button
+                        key={r.id}
+                        type="button"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center justify-between"
+                        onClick={() => {
+                          setSelectedReferrer(r);
+                          setEditReferrerId(String(r.id));
+                          setReferrerSearch("");
+                          setShowReferrerDropdown(false);
+                        }}
+                      >
+                        <span className="font-medium">{r.userName || r.id}</span>
+                        <span className="text-xs text-muted-foreground">{r.referralCode}</span>
+                      </button>
+                    ))}
+                </div>
+              )}
+              {showReferrerDropdown && referrerSearchResults.filter((r: any) => r.id !== editMember?.id).length === 0 && referrerSearch.length >= 2 && (
+                <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-sm px-3 py-2 text-sm text-muted-foreground">
+                  未找到会员
+                </div>
+              )}
+              {/* Selected referrer display */}
+              <div className="mt-2 text-xs text-muted-foreground">
+                <span>当前推荐人: </span>
+                {selectedReferrer ? (
+                  <span className="font-medium text-foreground">
+                    {selectedReferrer.name || selectedReferrer.userName || selectedReferrer.id}
+                    <button
+                      type="button"
+                      className="ml-2 text-destructive hover:underline"
+                      onClick={() => { setSelectedReferrer(null); setEditReferrerId(""); }}
+                    >
+                      (清除)
+                    </button>
+                  </span>
+                ) : (
+                  <span>{editMember?.referrerName || "无"}</span>
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter>
