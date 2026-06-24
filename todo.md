@@ -268,3 +268,10 @@
 - [x] Update Home.tsx to show "Use Password Login" and "Use Google Account Login" options
 - [x] Verify Google OAuth integration via Manus platform
 - [x] Build and verify no errors
+
+
+## Birthday Discount Product Limit (Completed)
+- [x] Change default birthday_max_products setting from 3 to 2
+- [x] Add hint in VipZone.tsx showing "Max 2 products for birthday discount"
+- [x] Verify backend validation enforces the limit
+- [x] Build and verify no errors

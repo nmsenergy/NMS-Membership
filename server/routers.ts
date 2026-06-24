@@ -724,8 +724,8 @@ const orderRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "Birthday discount only available in your birth month" });
       }
 
-      // Check max 3 different products
-      const maxBirthdayProducts = parseInt((await getSetting("birthday_max_products")) ?? "3");
+      // Check max 2 different products (configurable, default: 2)
+      const maxBirthdayProducts = parseInt((await getSetting("birthday_max_products")) ?? "2");
       if (input.items.length > maxBirthdayProducts) {
         throw new TRPCError({ code: "BAD_REQUEST", message: `Max ${maxBirthdayProducts} different products for birthday order` });
       }

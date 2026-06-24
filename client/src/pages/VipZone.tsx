@@ -94,7 +94,11 @@ export default function VipZone() {
                 <p className="text-xs text-muted-foreground mt-1">请联系管理员完成生日认证后使用此功能</p>
               </Card>
             ) : birthdayProducts && birthdayProducts.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3">
+              <>
+                <div className="mb-3 p-3 bg-blue-50 rounded-xl border border-blue-200">
+                  <p className="text-xs text-blue-900">💡 <strong>提示：</strong>生日優惠最多可選擇 <strong>2 種</strong>產品</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                 {birthdayProducts.map((p) => (
                   <Card key={p.id} className="rounded-xl border-0 overflow-hidden cursor-pointer" onClick={() => { setSelectedProduct(p); setOrderType("birthday"); }}>
                     <div className="h-32 bg-gradient-to-br from-pink-100 to-pink-50 flex items-center justify-center">
@@ -110,7 +114,8 @@ export default function VipZone() {
                     </div>
                   </Card>
                 ))}
-              </div>
+                </div>
+              </>
             ) : (
               <Card className="p-6 rounded-xl border-0 text-center">
                 <Cake size={40} className="mx-auto text-muted-foreground/40 mb-3" />
