@@ -231,8 +231,18 @@
 
 
 ## Member Login Credentials Management (Current)
-- [ ] Add passwordHash field to users table and migrate
-- [ ] Create password management procedures: resetPassword (admin), changePassword (member)
-- [ ] Admin UI: member login credentials panel with password reset button
-- [ ] Member UI: password change page in Profile
-- [ ] Test password reset and change flows
+- [x] Add passwordHash field to users table and migrate
+- [x] Create password management procedures: resetPassword (admin), changePassword (member)
+- [x] Admin UI: member login credentials panel with password reset button
+- [x] Member UI: password change page in Profile
+- [x] Test password reset and change flows
+
+
+## Password-Based Login Integration (Completed)
+- [x] Implement loginWithPassword tRPC procedure with email/password authentication
+- [x] Create Login page UI with password input and OAuth fallback option
+- [x] Add /login route to member router in App.tsx
+- [x] Update Home.tsx to show both password and OAuth login options
+- [x] Fix admin password reset to use userId instead of member id
+- [x] Write comprehensive password authentication tests (10 tests passing)
+- [x] Verify end-to-end flow: admin reset -> member login -> password change

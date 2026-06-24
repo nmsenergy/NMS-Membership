@@ -65,12 +65,21 @@ export default function Home() {
           <h1 className="text-2xl font-bold text-foreground mb-2">会员管理系统</h1>
           <p className="text-muted-foreground text-sm">登录以访问您的会员中心</p>
         </div>
-        <Button
-          className="w-full max-w-xs"
-          onClick={() => { window.location.href = getLoginUrl(); }}
-        >
-          登录 / 注册
-        </Button>
+        <div className="w-full max-w-xs space-y-3">
+          <Button
+            className="w-full"
+            onClick={() => navigate("/login")}
+          >
+            使用密码登录
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => { window.location.href = getLoginUrl(); }}
+          >
+            使用 Manus 账号登录
+          </Button>
+        </div>
       </div>
     );
   }

@@ -442,7 +442,7 @@ export default function AdminMembers() {
               variant="outline"
               size="sm"
               className="w-full"
-              onClick={() => resetPassword.mutate({ userId: editMember.id })}
+              onClick={() => resetPassword.mutate({ userId: editMember.userId })}
               disabled={resetPassword.isPending}
             >
               {resetPassword.isPending ? "生成中..." : "🔑 重置密码"}

@@ -18,6 +18,7 @@ import Announcements from "./pages/Announcements";
 import Notifications from "./pages/Notifications";
 import Register from "./pages/Register";
 import SwitchAccount from "./pages/SwitchAccount";
+import Login from "./pages/Login";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminMembers from "./pages/admin/AdminMembers";
 import AdminOrders from "./pages/admin/AdminOrders";
@@ -64,6 +65,7 @@ function AdminView() {
 function MemberView() {
   return (
     <Switch>
+      <Route path="/login" component={Login} />
       <Route path="/vip-zone" component={VipZone} />
       <Route path="/agent-zone" component={AgentZone} />
       <Route path="/orders" component={Orders} />

@@ -80,6 +80,8 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { storagePut, storageDelete } from "./storage";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { sdk } from "./_core/sdk";
+import { ONE_YEAR_MS } from "@shared/const";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -136,6 +138,41 @@ const authRouter = router({
     const isSwitched = !!ownMember && !!member && ownMember.id !== member.id;
     return { ...user, member, ownMember, isSwitched };
   }),
+  
+  // Password-based login
+  loginWithPassword: publicProcedure
+    .input(z.object({ email: z.string().email(), password: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      
+      // Find user by email
+      const result = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+      const user = result[0];
+      
+      if (!user || !user.passwordHash) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
+      }
+      
+      // Verify password
+      const isValid = await verifyPassword(input.password, user.passwordHash);
+      if (!isValid) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
+      }
+      
+      // Create session token (use openId as the session identifier)
+      const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name || "" });
+      
+      // Set session cookie
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      
+      // Update lastSignedIn
+      await updateUser(user.id, { lastSignedIn: new Date() });
+      
+      return { success: true };
+    }),
+  
   logout: publicProcedure.mutation(({ ctx }) => {
     const cookieOptions = getSessionCookieOptions(ctx.req);
     ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
