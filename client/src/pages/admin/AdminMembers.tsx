@@ -11,10 +11,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Search, Download, Upload, Edit, UserCheck } from "lucide-react";
 import { toast } from "sonner";
-import { useLocation } from "wouter";
+import { useAdminView } from "@/contexts/AdminContext";
 
 export default function AdminMembers() {
-  const [, navigate] = useLocation();
+  const { setShowAdminView } = useAdminView();
   const [search, setSearch] = useState("");
   const [rankFilter, setRankFilter] = useState("ALL");
   const [editMember, setEditMember] = useState<any>(null);
@@ -65,7 +65,7 @@ export default function AdminMembers() {
     <div className="mobile-app pb-8">
       <MobileHeader 
         title="会员管理" 
-        onBack={() => navigate("/admin")}
+        onBack={() => setShowAdminView(true)}
         rightElement={
         <button onClick={() => exportExcel.mutate({})} className="text-primary">
           <Download size={20} />

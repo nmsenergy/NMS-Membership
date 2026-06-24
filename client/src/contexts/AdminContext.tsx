@@ -1,17 +1,17 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
 
 interface AdminContextType {
-  isAdminView: boolean;
-  setIsAdminView: (value: boolean) => void;
+  showAdminView: boolean;
+  setShowAdminView: (value: boolean) => void;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export function AdminProvider({ children }: { children: ReactNode }) {
-  const [isAdminView, setIsAdminView] = useState(false);
+  const [showAdminView, setShowAdminView] = useState(false);
 
   return (
-    <AdminContext.Provider value={{ isAdminView, setIsAdminView }}>
+    <AdminContext.Provider value={{ showAdminView, setShowAdminView }}>
       {children}
     </AdminContext.Provider>
   );

@@ -3,7 +3,6 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { formatRM, RANK_LABELS, isAgentOrAbove, isSMOrAbove } from "@/lib/utils";
 import { getLoginUrl } from "@/const";
-import { useLocation } from "wouter";
 import BottomNav from "@/components/BottomNav";
 import RankBadge from "@/components/RankBadge";
 import { Bell, Copy, Gift, TrendingUp, Users, Wallet, ArrowUpRight, ChevronRight, Star } from "lucide-react";
@@ -11,10 +10,11 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAdminView } from "@/contexts/AdminContext";
 
 export default function Home() {
   const { user, loading: authLoading } = useAuth();
-  const [, navigate] = useLocation();
+  const { setShowAdminView } = useAdminView();
   const { data: authData } = trpc.auth.me.useQuery();
   const member = (authData as any)?.member;
   const { data: announcements } = trpc.announcement.list.useQuery();
@@ -22,9 +22,9 @@ export default function Home() {
   // Auto-redirect admin to admin dashboard
   useEffect(() => {
     if (user && (user as any)?.role === "admin") {
-      navigate("/admin");
+      setShowAdminView(true);
     }
-  }, [user, navigate]);
+  }, [user, setShowAdminView]);
 
   // If user is admin, show loading while redirecting
   if (user && (user as any)?.role === "admin") {
@@ -62,7 +62,7 @@ export default function Home() {
         </div>
         <Button
           className="w-full max-w-xs"
-          onClick={() => { const [, navigate] = useLocation(); navigate(getLoginUrl()); }}
+          onClick={() => { window.location.href = getLoginUrl(); }}
         >
           登录 / 注册
         </Button>
@@ -80,7 +80,7 @@ export default function Home() {
           <h1 className="text-xl font-bold mb-2">完善会员资料</h1>
           <p className="text-muted-foreground text-sm">请先完成会员注册以使用所有功能</p>
         </div>
-        <Button className="w-full max-w-xs" onClick={() => navigate("/register")}>
+        <Button className="w-full max-w-xs" onClick={() => setShowAdminView(false)}>
           立即注册
         </Button>
       </div>
@@ -121,7 +121,7 @@ export default function Home() {
               <Copy size={13} />
             </button>
           </div>
-          <button onClick={() => navigate("/announcements")} className="relative p-2">
+          <button onClick={() => setShowAdminView(false)} className="relative p-2">
             <Bell size={22} className="text-white" />
             {announcements && announcements.length > 0 && (
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-400 rounded-full" />
@@ -158,7 +158,7 @@ export default function Home() {
               return (
                 <button
                   key={action.label}
-                  onClick={() => navigate(action.path)}
+                  onClick={() => setShowAdminView(false)}
                   className="flex flex-col items-center gap-2"
                 >
                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${action.color}`}>
@@ -178,7 +178,7 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <Bell size={16} className="text-amber-600 shrink-0" />
               <p className="text-sm text-amber-800 truncate flex-1">{announcements[0].title}</p>
-              <button onClick={() => navigate("/announcements")}>
+              <button onClick={() => setShowAdminView(false)}>
                 <ChevronRight size={16} className="text-amber-600" />
               </button>
             </div>
@@ -217,7 +217,7 @@ export default function Home() {
             return (
               <button
                 key={item.path}
-                onClick={() => navigate(item.path)}
+                onClick={() => setShowAdminView(false)}
                 className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-accent/50 transition-colors ${i < arr.length - 1 ? "border-b border-border/50" : ""}`}
               >
                 <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">

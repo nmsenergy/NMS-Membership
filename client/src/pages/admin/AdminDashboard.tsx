@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { formatRM } from "@/lib/utils";
-import { useLocation } from "wouter";
+import { useAdminView } from "@/contexts/AdminContext";
 import { trpc } from "@/lib/trpc";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { toast } from "sonner";
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
-  const [, navigate] = useLocation();
+  const { setShowAdminView } = useAdminView();
   const { data: stats } = trpc.admin.stats.useQuery();
 
   if (!user || ((user as any).role !== "admin" && (user as any).role !== "regional_manager")) {
@@ -19,7 +19,7 @@ export default function AdminDashboard() {
         <div className="text-center px-8">
           <p className="text-lg font-semibold mb-2">无权限访问</p>
           <p className="text-muted-foreground text-sm mb-4">此页面仅限管理员访问</p>
-          <Button onClick={() => navigate("/")}>返回首页</Button>
+          <Button onClick={() => setShowAdminView(false)}>返回首页</Button>
         </div>
       </div>
     );
@@ -77,7 +77,7 @@ export default function AdminDashboard() {
           {menuItems.map((item, i) => {
             const Icon = item.icon;
             return (
-              <button key={item.path} onClick={() => navigate(item.path)} className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-accent/50 transition-colors ${i < menuItems.length - 1 ? "border-b border-border/50" : ""}`}>
+              <button key={item.path} onClick={() => setShowAdminView(true)} className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-accent/50 transition-colors ${i < menuItems.length - 1 ? "border-b border-border/50" : ""}`}>
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${item.color}`}>
                   <Icon size={18} />
                 </div>
@@ -90,7 +90,7 @@ export default function AdminDashboard() {
             );
           })}
         </Card>
-        <Button variant="outline" className="w-full mt-4" onClick={() => navigate("/")}>返回会员首页</Button>
+        <Button variant="outline" className="w-full mt-4" onClick={() => setShowAdminView(false)}>返回会员首页</Button>
       </div>
     </div>
   );

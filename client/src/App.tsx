@@ -1,10 +1,8 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import { AdminProvider } from "./contexts/AdminContext";
+import { AdminProvider, useAdminView } from "./contexts/AdminContext";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import Orders from "./pages/Orders";
@@ -28,39 +26,87 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminTopups from "./pages/admin/AdminTopups";
 import AdminCalculationBase from "./pages/admin/AdminCalculationBase";
 import AdminImport from "./pages/admin/AdminImport";
+import { useState } from "react";
 
-function Router() {
-  return (
-    <Switch>
-      {/* Member routes */}
-      <Route path="/" component={Home} />
-      <Route path="/register" component={Register} />
-      <Route path="/profile" component={Profile} />
-      <Route path="/orders" component={Orders} />
-      <Route path="/team" component={Team} />
-      <Route path="/vip-zone" component={VipZone} />
-      <Route path="/agent-zone" component={AgentZone} />
-      <Route path="/topup" component={TopUp} />
-      <Route path="/withdraw" component={Withdraw} />
-      <Route path="/upgrade" component={Upgrade} />
-      <Route path="/extra-rewards" component={ExtraRewards} />
-      <Route path="/announcements" component={Announcements} />
-      <Route path="/notifications" component={Notifications} />
-      {/* Admin routes */}
-      <Route path="/admin" component={AdminDashboard} />
-      <Route path="/admin/members" component={AdminMembers} />
-      <Route path="/admin/orders" component={AdminOrders} />
-      <Route path="/admin/products" component={AdminProducts} />
-      <Route path="/admin/bonuses" component={AdminBonuses} />
-      <Route path="/admin/announcements" component={AdminAnnouncements} />
-      <Route path="/admin/settings" component={AdminSettings} />
-      <Route path="/admin/topups" component={AdminTopups} />
-      <Route path="/admin/calculation-base" component={AdminCalculationBase} />
-      <Route path="/admin/import" component={AdminImport} />
-      <Route path="/404" component={NotFound} />
-      <Route component={NotFound} />
-    </Switch>
-  );
+// Member view component
+function MemberView() {
+  const [currentPage, setCurrentPage] = useState("home");
+
+  const renderPage = () => {
+    switch (currentPage) {
+      case "home":
+        return <Home />;
+      case "register":
+        return <Register />;
+      case "profile":
+        return <Profile />;
+      case "orders":
+        return <Orders />;
+      case "team":
+        return <Team />;
+      case "vip-zone":
+        return <VipZone />;
+      case "agent-zone":
+        return <AgentZone />;
+      case "topup":
+        return <TopUp />;
+      case "withdraw":
+        return <Withdraw />;
+      case "upgrade":
+        return <Upgrade />;
+      case "extra-rewards":
+        return <ExtraRewards />;
+      case "announcements":
+        return <Announcements />;
+      case "notifications":
+        return <Notifications />;
+      default:
+        return <Home />;
+    }
+  };
+
+  return renderPage();
+}
+
+// Admin view component
+function AdminView() {
+  const [currentAdminPage, setCurrentAdminPage] = useState("dashboard");
+
+  const renderAdminPage = () => {
+    switch (currentAdminPage) {
+      case "dashboard":
+        return <AdminDashboard />;
+      case "members":
+        return <AdminMembers />;
+      case "orders":
+        return <AdminOrders />;
+      case "products":
+        return <AdminProducts />;
+      case "bonuses":
+        return <AdminBonuses />;
+      case "announcements":
+        return <AdminAnnouncements />;
+      case "settings":
+        return <AdminSettings />;
+      case "topups":
+        return <AdminTopups />;
+      case "calculation-base":
+        return <AdminCalculationBase />;
+      case "import":
+        return <AdminImport />;
+      default:
+        return <AdminDashboard />;
+    }
+  };
+
+  return renderAdminPage();
+}
+
+// Root component that switches between member and admin views
+function AppContent() {
+  const { showAdminView } = useAdminView();
+
+  return showAdminView ? <AdminView /> : <MemberView />;
 }
 
 function App() {
@@ -70,7 +116,7 @@ function App() {
         <ThemeProvider defaultTheme="light">
           <TooltipProvider>
             <Toaster position="top-center" />
-            <Router />
+            <AppContent />
           </TooltipProvider>
         </ThemeProvider>
       </AdminProvider>
