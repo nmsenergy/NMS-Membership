@@ -759,6 +759,20 @@ const adminRouter = router({
     .mutation(async ({ input }) => {
       const XLSX = await import("xlsx");
       const all = await getAllMembers();
+      // Build referrer name map from all members data
+      const referrerMap: Record<number, string> = {};
+      for (const { member, user } of all) {
+        referrerMap[member.id] = user?.name ?? "";
+      }
+      
+      // Get referrer names
+      const referrerNameMap: Record<number, string> = {};
+      for (const { member } of all) {
+        if (member.referrerId && !referrerNameMap[member.referrerId]) {
+          referrerNameMap[member.referrerId] = referrerNameMap[member.referrerId] ?? "";
+        }
+      }
+      
       const rows = all
         .filter(({ member }) => !input?.rank || member.rank === input.rank)
         .map(({ member, user }) => ({
@@ -767,6 +781,7 @@ const adminRouter = router({
           邮箱: user?.email ?? "",
           手机: member.phone ?? "",
           推荐码: member.referralCode,
+          推荐人: member.referrerId ? referrerNameMap[member.referrerId] ?? "" : "",
           身份等级: member.rank,
           固本积分: member.gubenBalance,
           奖金余额: member.bonusBalance,
