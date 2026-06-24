@@ -91,7 +91,11 @@ export default function AdminDashboard() {
             );
           })}
         </Card>
-        <Button variant="outline" className="w-full mt-4" onClick={() => setShowAdminView(false)}>返回会员首页</Button>
+        <Button variant="outline" className="w-full mt-4" onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setShowAdminView(false);
+        }}>返回会员首页</Button>
       </div>
     </div>
   );
