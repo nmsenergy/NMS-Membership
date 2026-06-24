@@ -8,7 +8,23 @@ import App from "./App";
 import { getLoginUrl } from "./const";
 import "./index.css";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Retry up to 3 times on failure, with exponential backoff
+      // This handles transient errors when the server is starting up
+      retry: (failureCount, error) => {
+        // Don't retry on auth errors
+        if (error instanceof TRPCClientError && error.message === UNAUTHED_ERR_MSG) return false;
+        return failureCount < 3;
+      },
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+    },
+    mutations: {
+      retry: 0, // Don't retry mutations
+    },
+  },
+});
 
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
