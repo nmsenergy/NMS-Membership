@@ -323,3 +323,22 @@
 - [x] Add shipping locations management UI to AdminSettings (ShippingLocationsPanel component)
 - [x] Support create, edit, delete operations for shipping locations
 - [x] Verify build success with all changes
+
+
+## Member Import with Template (Completed)
+- [x] Implement importMembers API procedure (CSV parsing and validation)
+- [x] Add member import UI to AdminMembers page (download template, upload CSV)
+- [x] Generate and provide member import template download (CSV format)
+- [x] Test CSV import with sample data
+
+## Order Management Enhancement (Completed)
+- [x] Implement deleteOrder API procedure with validation
+- [x] Implement updateOrder API procedure (shipping address, notes)
+- [x] Add deleteOrder and updateOrder tRPC procedures
+- [x] Verify build success
+
+## Member Management Enhancement (Completed)
+- [x] Implement deleteMember API procedure with validation
+- [x] Implement updateMemberDetails function in db.ts
+- [x] Add deleteMember and updateOrder tRPC procedures
+- [x] Verify build success

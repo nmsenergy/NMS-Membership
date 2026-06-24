@@ -70,6 +70,10 @@ import {
   createShippingLocation,
   updateShippingLocation,
   deleteShippingLocation,
+  deleteOrder,
+  updateOrderDetails,
+  deleteMember,
+  updateMemberDetails,
 } from "./db";
 import {
   upgradeConditions,
@@ -2181,6 +2185,34 @@ const adminRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       await deleteShippingLocation(input.id);
+      return { success: true };
+    }),
+
+  // Order Management
+  deleteOrder: adminProcedure
+    .input(z.object({ orderId: z.number() }))
+    .mutation(async ({ input }) => {
+      await deleteOrder(input.orderId);
+      return { success: true };
+    }),
+
+  updateOrder: adminProcedure
+    .input(z.object({
+      orderId: z.number(),
+      shippingAddress: z.string().optional(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { orderId, ...data } = input;
+      await updateOrderDetails(orderId, data);
+      return { success: true };
+    }),
+
+  // Member Management
+  deleteMember: adminProcedure
+    .input(z.object({ memberId: z.number() }))
+    .mutation(async ({ input }) => {
+      await deleteMember(input.memberId);
       return { success: true };
     }),
 

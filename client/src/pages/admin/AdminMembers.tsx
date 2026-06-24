@@ -18,6 +18,9 @@ import { useAdminView } from "@/contexts/AdminContext";
 export default function AdminMembers() {
   const { setCurrentAdminPage } = useAdminView();
   const [search, setSearch] = useState("");
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPreview, setImportPreview] = useState<any[]>([]);
   const [rankFilter, setRankFilter] = useState("ALL");
   const [editMember, setEditMember] = useState<any>(null);
   const [editRank, setEditRank] = useState("");
@@ -128,6 +131,59 @@ export default function AdminMembers() {
     setExpandedId(expandedId === id ? null : id);
   };
 
+  const importMembers = trpc.admin.importMembers.useMutation({
+    onSuccess: () => {
+      toast.success("会员导入成功");
+      utils.admin.members.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleDownloadTemplate = () => {
+    const headers = ['姓名', '邮箱', '推荐码', '手机', '生日'];
+    const csv = [headers.join(',')].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'member_template.csv');
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success('模板已下载');
+  };
+
+  const handleImportFile = (e: any) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportFile(file);
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const csv = event.target?.result as string;
+      const lines = csv.split('\n').filter(l => l.trim());
+      const preview = lines.slice(1, 6).map((line, idx) => {
+        const [name, email, referralCode, phone, birthday] = line.split(',').map(s => s.trim());
+        return { idx, name, email, referralCode, phone, birthday };
+      });
+      setImportPreview(preview);
+      setShowImportDialog(true);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleConfirmImport = () => {
+    if (!importFile) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const csv = event.target?.result as string;
+      importMembers.mutate({ csvData: csv });
+      setShowImportDialog(false);
+      setImportFile(null);
+      setImportPreview([]);
+    };
+    reader.readAsText(importFile);
+  };
+
   const RANK_COLORS: Record<string, string> = {
     VIP: "bg-blue-100 text-blue-700",
     M_AGENT: "bg-green-100 text-green-700",
@@ -169,6 +225,23 @@ export default function AdminMembers() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        {/* Import Buttons */}
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex-1" onClick={handleDownloadTemplate}>
+            下载模板
+          </Button>
+          <Button className="flex-1" onClick={() => document.getElementById('member-import-input')?.click()}>
+            导入会员
+          </Button>
+          <input
+            id="member-import-input"
+            type="file"
+            accept=".csv"
+            style={{ display: 'none' }}
+            onChange={handleImportFile}
+          />
         </div>
 
         {isLoading ? (

@@ -967,3 +967,33 @@ export async function deleteShippingLocation(id: number) {
   if (!db) throw new Error("DB not available");
   return db.delete(shippingLocations).where(eq(shippingLocations.id, id));
 }
+
+
+// ─── Order Management ───────────────────────────────────────────────────────
+export async function deleteOrder(orderId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  // Delete order items first
+  await db.delete(orderItems).where(eq(orderItems.orderId, orderId));
+  // Delete order
+  return db.delete(orders).where(eq(orders.id, orderId));
+}
+
+export async function updateOrderDetails(orderId: number, data: { shippingAddress?: string; notes?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.update(orders).set(data).where(eq(orders.id, orderId));
+}
+
+// ─── Member Management ───────────────────────────────────────────────────────
+export async function deleteMember(memberId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.delete(members).where(eq(members.id, memberId));
+}
+
+export async function updateMemberDetails(memberId: number, data: { userName?: string; phone?: string; birthday?: string; notes?: string; isActive?: boolean }) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.update(members).set(data).where(eq(members.id, memberId));
+}
