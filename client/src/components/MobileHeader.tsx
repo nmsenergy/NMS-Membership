@@ -4,6 +4,7 @@ import { useAdminView } from "@/contexts/AdminContext";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
 
 interface MobileHeaderProps {
   title: string;
@@ -36,11 +37,16 @@ export default function MobileHeader({
     },
   });
 
+  const [, navigate] = useLocation();
+
   const handleBack = () => {
     if (onBack) {
       onBack();
     } else if (showAdminView) {
       setCurrentAdminPage("dashboard");
+    } else {
+      // Navigate back to home for member-facing pages
+      navigate("/");
     }
   };
 
