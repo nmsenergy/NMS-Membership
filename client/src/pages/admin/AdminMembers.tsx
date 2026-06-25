@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useEffect } from "react";
+import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { formatDate, RANK_LABELS, formatRM } from "@/lib/utils";
 import MobileHeader from "@/components/MobileHeader";
@@ -234,16 +235,11 @@ export default function AdminMembers() {
           <Button variant="outline" className="flex-1" onClick={handleDownloadTemplate}>
             下载模板
           </Button>
-          <Button className="flex-1" onClick={() => document.getElementById('member-import-input')?.click()}>
-            导入会员
-          </Button>
-          <input
-            id="member-import-input"
-            type="file"
-            accept=".csv"
-            style={{ display: 'none' }}
-            onChange={handleImportFile}
-          />
+          <Link href="/admin/import">
+            <Button className="flex-1" type="button">
+              导入会员
+            </Button>
+          </Link>
         </div>
 
         {isLoading ? (
