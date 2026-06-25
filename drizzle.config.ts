@@ -8,7 +8,7 @@ if (!connectionString) {
 export default defineConfig({
   schema: "./drizzle/schema.ts",
   out: "./drizzle",
-  dialect: "mysql",
+  dialect: "postgresql", // 这里必须改为 postgresql
   dbCredentials: {
     url: connectionString,
   },
