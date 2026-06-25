@@ -244,15 +244,29 @@ export default function AdminImport() {
       
       toast.dismiss(toastId);
       
+      // Force show success toast with strong notification
+      toast.success(`✅ 導入成功！已導入 ${result.created} 條會員記錄${result.failed?.length > 0 ? `，${result.failed.length} 條失敗` : ''}`, {
+        duration: 5000,
+      });
+      
+      // Refetch member list to update without page reload
+      await memberListQuery.refetch();
+      
       // Store result and show result page
       setImportResult(result);
       setImportStep("result");
+      
+      console.log('[Import] Member list refetched, result page displayed');
     } catch (error: any) {
       console.error(`[Import] Error:`, error);
       toast.dismiss(toastId);
       
       const errorMessage = error?.message || "导入失败，请检查数据格式";
-      toast.error(`❌ ${errorMessage}`);
+      // Force show error toast with strong notification
+      toast.error(`❌ 導入失敗：${errorMessage}`, {
+        duration: 5000,
+      });
+      console.error('[Import] Error details:', error);
       setImportStep("preview");
     }
   };
