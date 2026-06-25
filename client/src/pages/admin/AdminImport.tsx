@@ -308,7 +308,7 @@ export default function AdminImport() {
               <p className="font-medium">点击选择文件或拖拽上传</p>
               <p className="text-sm text-muted-foreground">支持 .xlsx 和 .xls 格式</p>
             </div>
-            <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+            <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
               选择文件
             </Button>
           </div>
@@ -485,6 +485,7 @@ export default function AdminImport() {
           {/* Action Buttons */}
           <div className="flex gap-3">
             <Button
+              type="button"
               variant="outline"
               onClick={() => {
                 setImportData([]);
@@ -498,7 +499,7 @@ export default function AdminImport() {
             >
               重新选择
             </Button>
-            <Button onClick={handleValidate} disabled={validateImportMutation.isPending}>
+            <Button type="button" onClick={handleValidate} disabled={validateImportMutation.isPending}>
               {validateImportMutation.isPending ? (
                 <>
                   <Loader2 size={16} className="mr-2 animate-spin" />
@@ -509,6 +510,7 @@ export default function AdminImport() {
               )}
             </Button>
             <Button
+              type="button"
               onClick={handleImport}
               disabled={validationErrors.length > 0 || importMembersMutation.isPending}
               className="ml-auto"
@@ -583,6 +585,7 @@ export default function AdminImport() {
               </div>
               <div className="mt-4 flex gap-2">
                 <Button
+                  type="button"
                   variant="outline"
                   onClick={() => {
                     const csv = ['姓名,电邮地址,国家,州属,邮区编号,城市,推荐人'];
@@ -616,6 +619,7 @@ export default function AdminImport() {
 
           <div className="flex gap-2">
             <Button
+              type="button"
               variant="outline"
               onClick={() => {
                 setImportStep("select");
